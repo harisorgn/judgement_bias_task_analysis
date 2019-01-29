@@ -1,6 +1,6 @@
-using CSV, DataStreams, XLSX, DataFrames
+using CSV, DataStreams, XLSX, DataFrames, Discreet, StatsBase
 
-include("klimb_proc.jl")
+include("klimb.jl")
 
 path = "./exp/" ;
 session_to_analyse = :probe
