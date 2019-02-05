@@ -7,17 +7,22 @@ function klimb_read(path::String, session_to_analyse::Symbol)
 		file_v = date_sort(filter(x->occursin(".csv", x), readdir(path))) ;
 	end
 	
-	n_trials_in_the_past = 1 ;
+	n_trials_in_the_past = 25 ;
 
 	mi_pr_v = Array{Float64,1}(undef, n_trials_in_the_past) ;
 	mi_pp_v = Array{Float64,1}(undef, n_trials_in_the_past) ;
 	mi_prp_v = Array{Float64,1}(undef, n_trials_in_the_past) ;
 	mi_ppr_v = Array{Float64,1}(undef, n_trials_in_the_past) ;
+	ci_pr_v = Array{Tuple{Float64, Float64},1}(undef, n_trials_in_the_past) ;
+	ci_pp_v = Array{Tuple{Float64, Float64},1}(undef, n_trials_in_the_past) ;
+	ci_prp_v = Array{Tuple{Float64, Float64},1}(undef, n_trials_in_the_past) ;
+	ci_ppr_v = Array{Tuple{Float64, Float64},1}(undef, n_trials_in_the_past) ;
 
 	for i = 1:n_trials_in_the_past
 	curr_press_v = Array{Int64,1}() ;
 	past_press_v = Array{Int64,1}() ;
 	past_reward_v = Array{Int64,1}() ;
+	n_trials_v = Array{Int64,1}() ;
 	for file_name in file_v
 
 		file = CSV.File(string(path, file_name)) ;
@@ -76,6 +81,7 @@ function klimb_read(path::String, session_to_analyse::Symbol)
 					append!(curr_press_v, tp[:,1]) ;
 					append!(past_press_v, tp[:,2]) ;
 					append!(past_reward_v, tp[:,3]) ;
+					push!(n_trials_v, length(tp[:,1]))
 				elseif	session == :probe_1vs1 && session_to_analyse == :probe
 					if first_time
 						println(file.name)
@@ -101,48 +107,18 @@ function klimb_read(path::String, session_to_analyse::Symbol)
 			write_xlsx(dt_v, session_to_analyse, file_name, path) ;
 		end
 	end
-
-	mi_v = mutual_info(curr_press_v, past_reward_v, past_press_v) ;
+	
+	mi_v = mutual_info(curr_press_v, past_reward_v, past_press_v, n_trials_v) ;
 	mi_pr_v[i] = mi_v[1] ;
 	mi_pp_v[i] = mi_v[2] ;
 	mi_prp_v[i] = mi_v[3] ;
 	mi_ppr_v[i] = mi_v[4] ;
+	ci_pr_v[i] = mi_v[5] ;
+	ci_pp_v[i] = mi_v[6] ;
+	ci_prp_v[i] = mi_v[6] ;
+	ci_ppr_v[i] = mi_v[6] ;
 	end
-
-	#=
-	x_ticks = 1:n_trials_in_the_past
-
-	figure()
-	scatter(1:n_trials_in_the_past, mi_pr_v)
-	xticks(x_ticks, [string(i) for i in 1:n_trials_in_the_past])
-	xlabel("Trials in the past", fontsize = 14)
-	ylabel("I", fontsize = 14)
-	title("Press ; past reward", fontsize = 14)
-
-	figure()
-	scatter(1:n_trials_in_the_past, mi_pp_v)
-	xticks(x_ticks, [string(i) for i in 1:n_trials_in_the_past])
-	xlabel("Trials in the past", fontsize = 14)
-	ylabel("I", fontsize = 14)
-	title("Press ; past press", fontsize = 14)
-
-	figure()
-	scatter(1:n_trials_in_the_past, mi_prp_v)
-	xticks(x_ticks, [string(i) for i in 1:n_trials_in_the_past])
-	xlabel("Trials in the past", fontsize = 14)
-	ylabel("I", fontsize = 14)
-	title("Press ; past reward | past press", fontsize = 14)
-
-	figure()
-	scatter(1:n_trials_in_the_past, mi_ppr_v)
-	xticks(x_ticks, [string(i) for i in 1:n_trials_in_the_past])
-	xlabel("Trials in the past", fontsize = 14)
-	ylabel("I", fontsize = 14)
-	title("Press ; past press | past reward", fontsize = 14)
-
-	show()
-	=#
-
+	plot_mi(mi_pr_v, mi_pp_v, mi_prp_v, mi_ppr_v, ci_pr_v, ci_pp_v, ci_prp_v, ci_ppr_v, n_trials_in_the_past)
 end
 
 function date_sort(fv :: Array{String})
@@ -442,66 +418,58 @@ function amb_trial_pairing(subject_dt::Array{Int64,2}, subject_id::Int64)
 
 	for i = 2 : size(subject_dt,1)
 		curr_press = 0 ;
-		if (subject_dt[i,3] == 2 && subject_dt[i,2] == 0) ||
-			(subject_dt[i,3] == 3 && subject_dt[i,2] == 3)
-			# cue 1 lever pressed
-			if mod(subject_id,2) == 0 
-				curr_press = 1 ;
-			else
-				curr_press = 4 ;
+		consider_trial = false ;
+		if subject_dt[i,2] == 0
+			if subject_dt[i,17] != 0 	# cue 1 press
+				mod(subject_id,2) == 0 ? curr_press = 1 : curr_press = 4
+				consider_trial = true ;
+			elseif subject_dt[i,19] != 0	# cue 2 press
+				mod(subject_id,2) == 0 ? curr_press = 4 : curr_press = 1
+				consider_trial = true ;
 			end
-		elseif (subject_dt[i,3] == 3 && subject_dt[i,2] == 0) ||
-			(subject_dt[i,3] == 2 && subject_dt[i,2] == 1)
-			# cue 2 lever pressed
-			if mod(subject_id,2) == 0 
-				curr_press = 4 ;
-			else
-				curr_press = 1 ;
+
+		elseif subject_dt[i,2] == 1
+			if subject_dt[i,17] != 0	# cue 2 press
+				mod(subject_id,2) == 0 ? curr_press = 4 : curr_press = 1
+				consider_trial = true ;
+			end
+
+		elseif subject_dt[i,2] == 3
+			if subject_dt[i,19] != 0	# cue 1 press
+				mod(subject_id,2) == 0 ? curr_press = 1 : curr_press = 4
+				consider_trial = true ;
 			end
 		end
-		
+
 		past_trial = i-1 ;
 		past_press = 0 ;
 		past_reward = 0 ;
 		found_past_trial = false ;
 
-		if subject_dt[i,3] == 2 || subject_dt[i,3] == 3
+		if consider_trial
 			while past_trial >= 1 && !found_past_trial
-				if subject_dt[past_trial,3] == 2 && subject_dt[past_trial,2] == 0
-					# cue 1 lever pressed correctly
-					if mod(subject_id,2) == 0 
-						past_press = 1 ;
-						past_reward = 1 ;
-					else
-						past_press = 4 ;
-						past_reward = 4 ;
+				if subject_dt[past_trial,2] == 0
+					if subject_dt[past_trial,17] != 0 # cue 1 press correctly
+						if mod(subject_id,2) == 0 
+							past_press = 1 ;
+							past_reward = 1 ;
+						else
+							past_press = 4 ;
+							past_reward = 4 ;
+						end
+						found_past_trial = true ;
+					elseif subject_dt[past_trial,19] != 0 # cue 2 press correctly
+						if mod(subject_id,2) == 0 
+							past_press = 4 ;
+							past_reward = 4 ;
+						else
+							past_press = 1 ;
+							past_reward = 1 ;
+						end
+						found_past_trial = true ;
 					end
-					found_past_trial = true ;
 
-				elseif subject_dt[past_trial,3] == 3 && subject_dt[past_trial,2] == 3
-					# cue 1 lever pressed incorrectly 
-					if mod(subject_id,2) == 0 
-						past_press = 1 ;
-						past_reward = 0 ;
-					else
-						past_press = 4 ;
-						past_reward = 0 ;
-					end
-					found_past_trial = true ;
-
-				elseif subject_dt[past_trial,3] == 3 && subject_dt[past_trial,2] == 0
-					# cue 2 lever pressed correctly
-					if mod(subject_id,2) == 0 
-						past_press = 4 ;
-						past_reward = 4 ;
-					else
-						past_press = 1 ;
-						past_reward = 1 ;
-					end
-					found_past_trial = true ;
-
-				elseif subject_dt[past_trial,3] == 2 && subject_dt[past_trial,2] == 1
-					# cue 2 lever pressed incorrectly
+				elseif subject_dt[past_trial,2] == 1 && subject_dt[past_trial,17] != 0 # cue 2 press incorrectly
 					if mod(subject_id,2) == 0 
 						past_press = 4 ;
 						past_reward = 0 ;
@@ -510,16 +478,28 @@ function amb_trial_pairing(subject_dt::Array{Int64,2}, subject_id::Int64)
 						past_reward = 0 ;
 					end
 					found_past_trial = true ;
-
+				elseif subject_dt[past_trial,2] == 3 && subject_dt[past_trial,19] != 0 # cue 1 press incorrectly
+					if mod(subject_id,2) == 0 
+						past_press = 1 ;
+						past_reward = 0 ;
+					else
+						past_press = 4 ;
+						past_reward = 0 ;
+					end
+					found_past_trial = true ;
+				elseif subject_dt[past_trial,2] == 2 && 
+					(subject_dt[past_trial,17] != 0 || subject_dt[past_trial,19] != 0)	# omission
+					past_press = 0 ;
+					past_reward = 0 ;
+					found_past_trial = true ;
 				end
 				past_trial -= 1 ;
 			end
-		end
-
-		if past_press != 0
-			push!(curr_press_v, curr_press) ;
-			push!(past_press_v, past_press) ;
-			push!(past_reward_v, past_reward) ;
+			if found_past_trial
+				push!(curr_press_v, curr_press) ;
+				push!(past_press_v, past_press) ;
+				push!(past_reward_v, past_reward) ;
+			end
 		end
 	end
 
@@ -533,62 +513,58 @@ function prev_trial_pairing(subject_dt::Array{Int64,2}, subject_id::Int64, n_tri
 	past_reward_v = Array{Int64,1}() ;
 
 	for i = n_trials_in_the_past + 1 : size(subject_dt,1)
+
 		curr_press = 0 ;
-		if (subject_dt[i,3] == 2 && subject_dt[i,2] == 0) ||
-			(subject_dt[i,3] == 3 && subject_dt[i,2] == 3)
-			# cue 1 lever pressed
-			if mod(subject_id,2) == 0 
-				curr_press = 1 ;
-			else
-				curr_press = 4 ;
+		consider_trial = false ;
+		
+		if subject_dt[i,2] == 0
+			if subject_dt[i,17] != 0 	# cue 1 press
+				mod(subject_id,2) == 0 ? curr_press = 1 : curr_press = 4
+				consider_trial = true ;
+			elseif subject_dt[i,19] != 0	# cue 2 press
+				mod(subject_id,2) == 0 ? curr_press = 4 : curr_press = 1
+				consider_trial = true ;
 			end
-		elseif (subject_dt[i,3] == 3 && subject_dt[i,2] == 0) ||
-			(subject_dt[i,3] == 2 && subject_dt[i,2] == 1)
-			# cue 2 lever pressed
-			if mod(subject_id,2) == 0 
-				curr_press = 4 ;
-			else
-				curr_press = 1 ;
+
+		elseif subject_dt[i,2] == 1
+			if subject_dt[i,17] != 0	# cue 2 press
+				mod(subject_id,2) == 0 ? curr_press = 4 : curr_press = 1
+				consider_trial = true ;
+			end
+
+		elseif subject_dt[i,2] == 3
+			if subject_dt[i,19] != 0	# cue 1 press
+				mod(subject_id,2) == 0 ? curr_press = 1 : curr_press = 4
+				consider_trial = true ;
 			end
 		end
-		
+
 		past_trial = i - n_trials_in_the_past ;
 		past_press = 0 ;
 		past_reward = 0 ;
-		consider_trial = true ;
 
-		if subject_dt[i,3] == 2 || subject_dt[i,3] == 3
-			if (subject_dt[past_trial,3] == 2 && subject_dt[past_trial,2] == 0) ||
-				(subject_dt[past_trial,3] == 0 && subject_dt[past_trial,2] == 0)
-				# cue 1 lever pressed correctly
-				if mod(subject_id,2) == 0 
-					past_press = 1 ;
-					past_reward = 1 ;
-				else
-					past_press = 4 ;
-					past_reward = 4 ;
+		if consider_trial
+			if subject_dt[past_trial,2] == 0
+				if subject_dt[past_trial,13] != 0 || subject_dt[past_trial,17] != 0 # cue 1 press correctly
+					if mod(subject_id,2) == 0 
+						past_press = 1 ;
+						past_reward = 1 ;
+					else
+						past_press = 4 ;
+						past_reward = 4 ;
+					end
+
+				elseif subject_dt[past_trial,15] != 0 || subject_dt[past_trial,19] != 0 # cue 2 press correctly
+					if mod(subject_id,2) == 0 
+						past_press = 4 ;
+						past_reward = 4 ;
+					else
+						past_press = 1 ;
+						past_reward = 1 ;
+					end
 				end
-			elseif subject_dt[past_trial,3] == 3 && subject_dt[past_trial,2] == 3
-				# cue 1 lever pressed incorrectly 
-				if mod(subject_id,2) == 0 
-					past_press = 1 ;
-					past_reward = 0 ;
-				else
-					past_press = 4 ;
-					past_reward = 0 ;
-				end
-			elseif (subject_dt[past_trial,3] == 3 && subject_dt[past_trial,2] == 0) ||
-					(subject_dt[past_trial,3] == 1 && subject_dt[past_trial,2] == 0)
-				# cue 2 lever pressed correctly
-				if mod(subject_id,2) == 0 
-					past_press = 4 ;
-					past_reward = 4 ;
-				else
-					past_press = 1 ;
-					past_reward = 1 ;
-				end
-			elseif subject_dt[past_trial,3] == 2 && subject_dt[past_trial,2] == 1
-				# cue 2 lever pressed incorrectly
+
+			elseif subject_dt[past_trial,2] == 1	# cue 2 press incorrectly
 				if mod(subject_id,2) == 0 
 					past_press = 4 ;
 					past_reward = 0 ;
@@ -596,22 +572,30 @@ function prev_trial_pairing(subject_dt::Array{Int64,2}, subject_id::Int64, n_tri
 					past_press = 1 ;
 					past_reward = 0 ;
 				end
-			elseif subject_dt[past_trial,2] == 4 
-				# premature
-				#consider_trial = false ;
-				past_press = 5 ;	# unknown press
-				past_reward = 0 ;
-			elseif subject_dt[past_trial,2] == 2
-				# omission
-				#consider_trial = false ;
+				
+			elseif subject_dt[past_trial,2] == 3	# cue 1 press incorrectly
+				if mod(subject_id,2) == 0 
+					past_press = 1 ;
+					past_reward = 0 ;
+				else
+					past_press = 4 ;
+					past_reward = 0 ;
+				end
+			
+			elseif subject_dt[past_trial,2] == 2	# omission
 				past_press = 0 ;
 				past_reward = 0 ;
+			elseif subject_dt[past_trial,2] == 4	# premature
+				past_press = 5 ;	# unknown press
+				past_reward = 0 ;
 			end
-		end
-		if consider_trial
-		push!(curr_press_v, curr_press) ;
-		push!(past_press_v, past_press) ;
-		push!(past_reward_v, past_reward) ;
+			if past_press == 0 && past_reward == 0 && subject_dt[past_trial,2] != 2
+				println(subject_dt[past_trial,2])
+			end
+
+			push!(curr_press_v, curr_press) ;
+			push!(past_press_v, past_press) ;
+			push!(past_reward_v, past_reward) ;
 		end
 	end
 

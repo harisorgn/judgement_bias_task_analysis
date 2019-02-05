@@ -1,8 +1,5 @@
 using XLSX, DataFrames, PyPlot , CSV, HypothesisTests
 
-include("klimb_proc.jl")
-include("constants.jl")
-
 struct probe_data
 	cbi::Array{Float64,2}
 	om_H::Array{Float64,2}
@@ -1520,7 +1517,49 @@ function plot_discrimination()
 end
 
 
-plot_discrimination()
+function plot_mi(mi_pr_v::Array{Float64,1}, mi_pp_v::Array{Float64,1}, mi_prp_v::Array{Float64,1}, 
+				mi_ppr_v::Array{Float64,1}, ci_pr_v::Array{Tuple{Float64,Float64},1}, 
+				ci_pp_v::Array{Tuple{Float64,Float64},1}, ci_prp_v::Array{Tuple{Float64,Float64},1},
+				ci_ppr_v::Array{Tuple{Float64,Float64},1}, n_trials_in_the_past::Int64)
 
+	x_ticks = 1:n_trials_in_the_past
 
+	figure()
+	scatter(1:n_trials_in_the_past, mi_pr_v, label = "Actual I")
+	scatter((1:n_trials_in_the_past, 1:n_trials_in_the_past), ci_pr_v, label = "Shuffled confidence interval")
+	xticks(x_ticks, [string(i) for i in 1:n_trials_in_the_past])
+	xlabel("Trials in the past", fontsize = 14)
+	ylabel("I", fontsize = 14)
+	title("Press ; past reward", fontsize = 14)
+	legend()
+
+	figure()
+	scatter(1:n_trials_in_the_past, mi_pp_v, label = "Actual I")
+	scatter((1:n_trials_in_the_past, 1:n_trials_in_the_past), ci_pp_v, label = "Shuffled confidence interval")
+	xticks(x_ticks, [string(i) for i in 1:n_trials_in_the_past])
+	xlabel("Trials in the past", fontsize = 14)
+	ylabel("I", fontsize = 14)
+	title("Press ; past press", fontsize = 14)
+	legend()
+
+	figure()
+	scatter(1:n_trials_in_the_past, mi_prp_v, label = "Actual I")
+	scatter((1:n_trials_in_the_past, 1:n_trials_in_the_past), ci_prp_v, label = "Shuffled confidence interval")
+	xticks(x_ticks, [string(i) for i in 1:n_trials_in_the_past])
+	xlabel("Trials in the past", fontsize = 14)
+	ylabel("I", fontsize = 14)
+	title("Press ; past reward | past press", fontsize = 14)
+	legend()
+
+	figure()
+	scatter(1:n_trials_in_the_past, mi_ppr_v, label = "Actual I")
+	scatter((1:n_trials_in_the_past, 1:n_trials_in_the_past), ci_ppr_v, label = "Shuffled confidence interval")
+	xticks(x_ticks, [string(i) for i in 1:n_trials_in_the_past])
+	xlabel("Trials in the past", fontsize = 14)
+	ylabel("I", fontsize = 14)
+	title("Press ; past press | past reward", fontsize = 14)
+	legend()
+	
+	show()
+end
 
