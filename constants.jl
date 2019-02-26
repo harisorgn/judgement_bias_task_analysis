@@ -1,8 +1,8 @@
 
-train_header_vec = ["Batch_ID", "Session", "HH_RT", "LL_RT", "HL_RT", "LH_RT",
+train_header_v = ["Batch_ID", "Session", "HH_RT", "LL_RT", "HL_RT", "LH_RT",
 				"HH", "LL", "HL", "LH", "Om_H", "Om_L", "Prem"] ;
 
-probe_header_vec = ["Batch_ID", "HH_RT", "LL_RT", "HL_RT", "LH_RT",
+probe_header_v = ["Batch_ID", "HH_RT", "LL_RT", "HL_RT", "LH_RT",
 					"MH_RT", "ML_RT", "HH", "LL", "HL", "LH",
 					"MH", "ML", "CBI",
 					"Om_H", "Om_L", "Om_M", "Prem", "M_RT"] ;

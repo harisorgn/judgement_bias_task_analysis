@@ -1,4 +1,4 @@
-using XLSX, DataFrames, PyPlot , CSV, HypothesisTests
+using PyPlot
 
 struct probe_data
 	cbi::Array{Float64,2}
