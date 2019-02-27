@@ -76,10 +76,14 @@ function klimb_read(path::String, session_to_analyse::Symbol)
 
 				elseif	session == :probe_1vs1 && session_to_analyse == :probe
 					if first_time
-						#println(file.name)
+						println(file.name)
 						first_time = false ;
 					end
 					
+					subj_t , subj_write_v = get_probe_subj(subj_m, subj_id, 2) ;
+					push!(subj_t_v, subj_t) ;
+					push!(write_v, subj_write_v) ;
+
 				elseif (session == :t1v1 || session == :t4v1) && session_to_analyse == :train
 					if first_time
 						println(file.name)
