@@ -10,6 +10,8 @@ probe_header_v = ["Batch_ID", "HH_RT", "LL_RT", "HL_RT", "LH_RT",
 pattern_vec = [:hard, :hard, :easy, :easy, :easy, :hard, :hard, :easy, 
 				   :easy, :easy, :hard, :hard, :easy, :easy, :hard, :hard] ;
 
+exclude_v = ["CH1_1", "CH1_4", "CH1_6", "CH1_9", "CH1_15", "CH5_10"] ;
+
 CB_4 = [:A :B :D :C ;
 	  :B :C :A :D ;
 	  :C :D :B :A ;

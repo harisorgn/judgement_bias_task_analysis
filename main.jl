@@ -7,50 +7,23 @@ include("constants.jl")
 include("mi.jl")
 include("plot.jl")
 
-path = "./exp/ho2/1vs1 probe/" ;
-session_to_analyse = :probe
 
-subj_v = klimb_read(path, session_to_analyse)
-#klimb_mi(path, session_to_analyse, 1)
+session_to_analyse = :probe ;
+write_flag = false ;
+path = "./exp/probe/baseline/"
 
-switch_d = get_switch_after_incorr(subj_v) ;
+#klimb_mi(path, session_to_analyse, 10) 
+subj_v = klimb_read(path, session_to_analyse, write_flag)
 
-switch_tupl_v = collect(values(switch_d)) ;
+plot_switch(subj_v)
 
-mask_significant = map(x -> x[1] >= x[2], switch_tupl_v) ;
+#=
+path = "./exp/probe/ketamine/veh/" ;
+subj_veh_v = old_klimb_read(path, session_to_analyse, write_flag)
 
-figure()
-ax = gca()
-hist(map(x->x[1], switch_tupl_v[mask_significant]), 25, color = "g", label = "Significant")
-hist(map(x->x[1], switch_tupl_v[.!mask_significant]), 25, color = "b", alpha = 0.2, label = "Not significant")
-xlabel("Switches [%]", fontsize = 16)
-ylabel("N [subjects]", fontsize = 16)
-ax[:tick_params](labelsize = 16)
-legend(fontsize = 16)
+path = "./exp/probe/ketamine/ket/" ;
+subj_ket_v = old_klimb_read(path, session_to_analyse, write_flag)
 
-println(length(switch_tupl_v[mask_significant]))
+plot_ket_switch(subj_veh_v, subj_ket_v) 
+=#
 
-same_d = get_same_after_corr(subj_v) ;
-
-same_tupl_v = collect(values(same_d)) ;
-
-mask_significant = map(x -> x[1] >= x[2], same_tupl_v) ;
-
-figure()
-ax = gca()
-hist(map(x->x[1], same_tupl_v[mask_significant]), 25, color = "g", label = "Significant")
-hist(map(x->x[1], same_tupl_v[.!mask_significant]), 25, color = "b", alpha = 0.2, label = "Not significant")
-xlabel("Same presses [%]", fontsize = 16)
-ylabel("N [subjects]", fontsize = 16)
-ax[:tick_params](labelsize = 16)
-legend(fontsize = 16)
-
-println(length(collect(keys(switch_d))))
-
-mask_both_significant = map((x,y) -> x[1] >= x[2] && y[1] >= y[2], switch_tupl_v, same_tupl_v) ;
-
-println(length(same_tupl_v[mask_significant]))
-
-println(length(same_tupl_v[mask_both_significant]))
-
-show()
