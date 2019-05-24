@@ -7,6 +7,15 @@ probe_header_v = ["Batch_ID", "HH_RT", "LL_RT", "HL_RT", "LH_RT",
 					"MH", "ML", "CBI",
 					"Om_H", "Om_L", "Om_M", "Prem", "M_RT"] ;
 
+probe_mult_amb_header_v = ["Batch_ID", "HH_RT", "LL_RT", "HL_RT", "LH_RT",
+					"M1H_RT", "M2H_RT", "M3H_RT", "M4H_RT", 
+					"M1L_RT", "M2L_RT", "M3L_RT", "M4L_RT",
+					"HH", "LL", "HL", "LH",
+					"M1H", "M2H", "M3H", "M4H", 
+					"M1L", "M2L", "M3L", "M4L",
+					"Om_H", "Om_L", "Om_M1", "Om_M2", "Om_M3", "Om_M4",
+					"Prem"] ;
+
 pattern_vec = [:hard, :hard, :easy, :easy, :easy, :hard, :hard, :easy, 
 				   :easy, :easy, :hard, :hard, :easy, :easy, :hard, :hard] ;
 

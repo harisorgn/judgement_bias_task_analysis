@@ -1,4 +1,4 @@
-using CSV, DataStreams, XLSX, DataFrames, PyPlot
+using CSV, DataStreams, XLSX, DataFrames
 using Distributions, HypothesisTests, Discreet, StatsBase, Statistics, Random
 
 include("klimb.jl")
@@ -10,12 +10,14 @@ include("plot.jl")
 
 session_to_analyse = :probe ;
 write_flag = false ;
-path = "./exp/probe/baseline/"
+path = "./exp/probe/ketamine/ket/"
 
 #klimb_mi(path, session_to_analyse, 10) 
-subj_v = klimb_read(path, session_to_analyse, write_flag)
+subj_v = old_klimb_read(path, session_to_analyse, write_flag)
 
-plot_switch(subj_v)
+plot_rt_prev(subj_v)
+
+#plot_switch(subj_v)
 
 #=
 path = "./exp/probe/ketamine/veh/" ;
