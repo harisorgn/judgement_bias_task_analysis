@@ -10,12 +10,15 @@ include("plot.jl")
 
 session_to_analyse = :probe ;
 write_flag = false ;
-path = "./exp/probe/ketamine/ket/"
+path = "./exp/probe/baseline/"
 
 #klimb_mi(path, session_to_analyse, 10) 
-subj_v = old_klimb_read(path, session_to_analyse, write_flag)
+subj_v = klimb_read(path, session_to_analyse, write_flag)
 
-plot_rt_prev(subj_v)
+subj_psycho_v = get_psychometric(subj_v, 5, 0)	
+plot_psychometric(subj_psycho_v)
+
+#plot_rt_prev(subj_v)
 
 #plot_switch(subj_v)
 

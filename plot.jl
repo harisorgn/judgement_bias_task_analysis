@@ -299,37 +299,83 @@ function plot_rt_prev(subj_v::Array{subj_t,1})
 
 	figure()
 	ax = gca()
+	x_ticks = [0.5, 1.0, 1.5] ;
+	scatter(fill(x_ticks[1],length(rt_HH_H_v)), rt_HH_H_v, color = "red") ;
+	scatter(fill(x_ticks[2],length(rt_HH_M_v)), rt_HH_M_v, color = "blue") ;
+	scatter(fill(x_ticks[3],length(rt_HH_L_v)), rt_HH_L_v, color = "green") ;
 
-	scatter(fill(0.5,length(rt_HH_H_v)), rt_HH_H_v, color = "red") ;
-	scatter(fill(1.0,length(rt_HH_M_v)), rt_HH_M_v, color = "blue") ;
-	scatter(fill(1.5,length(rt_HH_L_v)), rt_HH_L_v, color = "green") ;
+	x_ticks .+= 3.0 ;
+	scatter(fill(x_ticks[1],length(rt_HL_H_v)), rt_HL_H_v, color = "red") ;
+	scatter(fill(x_ticks[2],length(rt_HL_M_v)), rt_HL_M_v, color = "blue") ;
+	scatter(fill(x_ticks[3],length(rt_HL_L_v)), rt_HL_L_v, color = "green") ;
 
-	scatter(fill(3.5,length(rt_HL_H_v)), rt_HL_H_v, color = "red") ;
-	scatter(fill(4.0,length(rt_HL_M_v)), rt_HL_M_v, color = "blue") ;
-	scatter(fill(4.5,length(rt_HL_L_v)), rt_HL_L_v, color = "green") ;
+	x_ticks .+= 3.0 ;
+	scatter(fill(x_ticks[1],length(rt_MH_H_v)), rt_MH_H_v, color = "red") ;
+	scatter(fill(x_ticks[2],length(rt_MH_M_v)), rt_MH_M_v, color = "blue") ;
+	scatter(fill(x_ticks[3],length(rt_MH_L_v)), rt_MH_L_v, color = "green") ;
 
-	scatter(fill(6.5,length(rt_MH_H_v)), rt_MH_H_v, color = "red") ;
-	scatter(fill(7.0,length(rt_MH_M_v)), rt_MH_M_v, color = "blue") ;
-	scatter(fill(7.5,length(rt_MH_L_v)), rt_MH_L_v, color = "green") ;
+	x_ticks .+= 3.0 ;
+	scatter(fill(x_ticks[1],length(rt_ML_H_v)), rt_ML_H_v, color = "red") ;
+	scatter(fill(x_ticks[2],length(rt_ML_M_v)), rt_ML_M_v, color = "blue") ;
+	scatter(fill(x_ticks[3],length(rt_ML_L_v)), rt_ML_L_v, color = "green") ;
 
-	scatter(fill(9.5,length(rt_ML_H_v)), rt_ML_H_v, color = "red") ;
-	scatter(fill(10.0,length(rt_ML_M_v)), rt_ML_M_v, color = "blue") ;
-	scatter(fill(10.5,length(rt_ML_L_v)), rt_ML_L_v, color = "green") ;
+	x_ticks .+= 3.0 ;
+	scatter(fill(x_ticks[1],length(rt_LH_H_v)), rt_LH_H_v, color = "red") ;
+	scatter(fill(x_ticks[2],length(rt_LH_M_v)), rt_LH_M_v, color = "blue") ;
+	scatter(fill(x_ticks[3],length(rt_LH_L_v)), rt_LH_L_v, color = "green") ;
 
-	scatter(fill(12.5,length(rt_LH_H_v)), rt_LH_H_v, color = "red") ;
-	scatter(fill(13.0,length(rt_LH_M_v)), rt_LH_M_v, color = "blue") ;
-	scatter(fill(13.5,length(rt_LH_L_v)), rt_LH_L_v, color = "green") ;
+	x_ticks .+= 3.0 ;
+	scatter(fill(x_ticks[1],length(rt_LL_H_v)), rt_LL_H_v, color = "red", label = "High previous") ;
+	scatter(fill(x_ticks[2],length(rt_LL_M_v)), rt_LL_M_v, color = "blue", label = "Mid previous") ;
+	scatter(fill(x_ticks[3],length(rt_LL_L_v)), rt_LL_L_v, color = "green", label = "Low previous") ;
 
-	scatter(fill(15.5,length(rt_LL_H_v)), rt_LL_H_v, color = "red", label = "High previous") ;
-	scatter(fill(16.0,length(rt_LL_M_v)), rt_LL_M_v, color = "blue", label = "Mid previous") ;
-	scatter(fill(16.5,length(rt_LL_L_v)), rt_LL_L_v, color = "green", label = "Low previous") ;
-
-	ax[:set_xticks]([1.0, 4.0, 7.0, 10.0, 13.0, 16.0])
+	ax[:set_xticks]([x_ticks[2] - 5.0*3.0, x_ticks[2] - 4.0*3.0, x_ticks[2] - 3.0*3.0, 
+		x_ticks[2] - 2.0*3.0, x_ticks[2] - 1.0*3.0, x_ticks[2]])
 	ax[:set_xticklabels](["High tone \n High Press", "High tone \n Low Press",
 						"Mid tone \n High Press", "Mid tone \n Low Press",
 						"Low tone \n High Press", "Low tone \n Low Press"])
 	ax[:tick_params](labelsize = 16)
 	legend()
+	show()
+end
+
+function plot_psychometric(subj_psycho_v::Array{subj_psycho_t,1})
+
+
+	n_tones = size(subj_psycho_v[1].acc_m, 1) ;
+	n_subj = length(subj_psycho_v) ;
+
+	r4_m = Matrix{Float64}(undef, n_tones, n_subj) ;
+	rt_m = Matrix{Float64}(undef, n_tones, n_subj) ;
+
+	i = 1 ;
+	for subj in subj_psycho_v 
+		r4_m[:, i] = subj.acc_m[:,1] ;
+		rt_m[:, i] = subj.rt_m[:,1] ;
+
+		i += 1 ;
+	end
+
+	figure()
+	ax = gca()
+	x_ticks = [0.0 + i for i in 1:n_tones] ;
+
+	for tone = 1 : n_tones
+		scatter(fill(x_ticks[tone], n_subj), r4_m[tone,:], alpha = 0.5)
+		errorbar(x_ticks[tone], mean(r4_m[tone,:]), yerr = std(r4_m[tone,:]), 
+				marker = "D", markersize = 10, capsize = 10)
+	end
+
+	figure()
+	ax = gca()
+	x_ticks = [0.0 + i for i in 1:n_tones] ;
+
+	for tone = 1 : n_tones
+		scatter(fill(x_ticks[tone], n_subj), rt_m[tone,:], alpha = 0.5)
+		errorbar(x_ticks[tone], mean(rt_m[tone,:]), yerr = std(rt_m[tone,:]), 
+				marker = "D", markersize = 10, capsize = 10)
+	end
+
 	show()
 end
 

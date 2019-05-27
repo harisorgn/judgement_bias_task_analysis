@@ -443,19 +443,19 @@ function get_probe_mult_amb_subj(subj_m::Array{Int64,2}, subj_id::String, col_of
 	write_v = Array{Any,1}(undef, length(probe_mult_amb_header_v)) ;
 	write_v[1] = id_number ;
 
-	tone[map((x) -> x != 0 , subj_m[:,17+col_offset])] .= 475 ; # 4.75 KHz, kept tones as Int for simpler logical operations
-	tone[map((x) -> x != 0 , subj_m[:,19+col_offset])] .= 450 ; # 4.50 KHz
-	tone[map((x) -> x != 0 , subj_m[:,21+col_offset])] .= 525 ; # 5.25 KHz
-	tone[map((x) -> x != 0 , subj_m[:,23+col_offset])] .= 550 ; # 5.50 KHz 
+	tone[map((x) -> x != 0 , subj_m[:,17+col_offset])] .= 4 ; # 4.75 KHz, coded tones as Int for simpler logical operations
+	tone[map((x) -> x != 0 , subj_m[:,19+col_offset])] .= 3 ; # 4.50 KHz
+	tone[map((x) -> x != 0 , subj_m[:,21+col_offset])] .= 6 ; # 5.25 KHz
+	tone[map((x) -> x != 0 , subj_m[:,23+col_offset])] .= 7 ; # 5.50 KHz 
 
-	rt[map((x,y) -> x == 475 && y != 0, tone, subj_m[:, 17+col_offset])] = (subj_m[map((x,y) -> x == 475 && y != 0, tone, subj_m[:, 17+col_offset]), 18+col_offset] - 
-									subj_m[map((x,y) -> x == 475 && y != 0, tone, subj_m[:, 17+col_offset]), 17+col_offset]) / 100.0 ;
-	rt[map((x,y) -> x == 450 && y != 0, tone, subj_m[:, 19+col_offset])] = (subj_m[map((x,y) -> x == 450 && y != 0, tone, subj_m[:, 19+col_offset]), 20+col_offset] - 
-									subj_m[map((x,y) -> x == 450 && y != 0, tone, subj_m[:, 19+col_offset]), 19+col_offset]) / 100.0 ;
-	rt[map((x,y) -> x == 525 && y != 0, tone, subj_m[:, 21+col_offset])] = (subj_m[map((x,y) -> x == 525 && y != 0, tone, subj_m[:, 21+col_offset]), 22+col_offset] - 
-									subj_m[map((x,y) -> x == 525 && y != 0, tone, subj_m[:, 21+col_offset]), 21+col_offset]) / 100.0 ;
-	rt[map((x,y) -> x == 550 && y != 0, tone, subj_m[:, 23+col_offset])] = (subj_m[map((x,y) -> x == 550 && y != 0, tone, subj_m[:, 23+col_offset]), 24+col_offset] - 
-									subj_m[map((x,y) -> x == 550 && y != 0, tone, subj_m[:, 23+col_offset]), 23+col_offset]) / 100.0 ;
+	rt[map((x,y) -> x == 4 && y != 0, tone, subj_m[:, 17+col_offset])] = (subj_m[map((x,y) -> x == 4 && y != 0, tone, subj_m[:, 17+col_offset]), 18+col_offset] - 
+									subj_m[map((x,y) -> x == 4 && y != 0, tone, subj_m[:, 17+col_offset]), 17+col_offset]) / 100.0 ;
+	rt[map((x,y) -> x == 3 && y != 0, tone, subj_m[:, 19+col_offset])] = (subj_m[map((x,y) -> x == 3 && y != 0, tone, subj_m[:, 19+col_offset]), 20+col_offset] - 
+									subj_m[map((x,y) -> x == 3 && y != 0, tone, subj_m[:, 19+col_offset]), 19+col_offset]) / 100.0 ;
+	rt[map((x,y) -> x == 6 && y != 0, tone, subj_m[:, 21+col_offset])] = (subj_m[map((x,y) -> x == 6 && y != 0, tone, subj_m[:, 21+col_offset]), 22+col_offset] - 
+									subj_m[map((x,y) -> x == 6 && y != 0, tone, subj_m[:, 21+col_offset]), 21+col_offset]) / 100.0 ;
+	rt[map((x,y) -> x == 7 && y != 0, tone, subj_m[:, 23+col_offset])] = (subj_m[map((x,y) -> x == 7 && y != 0, tone, subj_m[:, 23+col_offset]), 24+col_offset] - 
+									subj_m[map((x,y) -> x == 7 && y != 0, tone, subj_m[:, 23+col_offset]), 23+col_offset]) / 100.0 ;
 
 	if mod(id_number, 2) == 0 
 		press[mask_corr_cue1 .| mask_corr_amb11 .| mask_corr_amb21 .| mask_corr_amb31 .| mask_corr_amb41 .| 
@@ -500,10 +500,10 @@ function get_probe_mult_amb_subj(subj_m::Array{Int64,2}, subj_id::String, col_of
 							100.0*count(x -> x == true, mask_corr_amb41 .| mask_incorr_amb41)/count(x -> x == true, mask_corr_amb42 .| mask_incorr_amb42 .| mask_corr_amb41 .| mask_incorr_amb41), 
 							100.0*count(x->x==true, mask_om_cue2)/count(x->x==2, tone), 
 							100.0*count(x->x==true, mask_om_cue1)/count(x->x==8, tone), 
-							100.0*count(x -> x == true, mask_om_amb1)/count(x->x==450,tone), 
-							100.0*count(x -> x == true, mask_om_amb2)/count(x->x==475,tone), 
-							100.0*count(x -> x == true, mask_om_amb3)/count(x->x==525,tone), 
-							100.0*count(x -> x == true, mask_om_amb4)/count(x->x==550,tone), 
+							100.0*count(x -> x == true, mask_om_amb1)/count(x->x==3,tone), 
+							100.0*count(x -> x == true, mask_om_amb2)/count(x->x==4,tone), 
+							100.0*count(x -> x == true, mask_om_amb3)/count(x->x==6,tone), 
+							100.0*count(x -> x == true, mask_om_amb4)/count(x->x==7,tone), 
 							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1) ] ;
 
 	else
@@ -549,10 +549,10 @@ function get_probe_mult_amb_subj(subj_m::Array{Int64,2}, subj_id::String, col_of
 							100.0*count(x -> x == true, mask_corr_amb42 .| mask_incorr_amb42)/count(x -> x == true, mask_corr_amb42 .| mask_incorr_amb42 .| mask_corr_amb41 .| mask_incorr_amb41), 
 							100.0*count(x->x==true, mask_om_cue1)/count(x->x==2, tone), 
 							100.0*count(x->x==true, mask_om_cue2)/count(x->x==8, tone), 
-							100.0*count(x -> x == true, mask_om_amb1)/count(x->x==450,tone), 
-							100.0*count(x -> x == true, mask_om_amb2)/count(x->x==475,tone), 
-							100.0*count(x -> x == true, mask_om_amb3)/count(x->x==525,tone), 
-							100.0*count(x -> x == true, mask_om_amb4)/count(x->x==550,tone), 
+							100.0*count(x -> x == true, mask_om_amb1)/count(x->x==3,tone), 
+							100.0*count(x -> x == true, mask_om_amb2)/count(x->x==4,tone), 
+							100.0*count(x -> x == true, mask_om_amb3)/count(x->x==6,tone), 
+							100.0*count(x -> x == true, mask_om_amb4)/count(x->x==7,tone), 
 							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1) ] ;
 	end
 

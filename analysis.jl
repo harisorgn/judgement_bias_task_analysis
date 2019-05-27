@@ -1,3 +1,12 @@
+struct subj_psycho_t
+	id::String
+	acc_m::Matrix{Float64}
+	rt_m::Matrix{Float64}
+	conditioned_tone::Int64
+	conditioned_press::Int64
+end
+
+
 function get_switch_after_incorr(subj_v::Array{subj_t,1})
 
 	dict = Dict{String, Tuple{Float64, Float64, Float64, Float64, Int64, Int64, Int64}}() ;
@@ -167,4 +176,68 @@ function get_same_after_corr(subj_v::Array{subj_t,1})
 	end
 	
 	return dict
+end
+
+function get_psychometric(subj_v::Array{subj_t,1}, conditioned_tone::Int64, conditioned_press::Int64)
+
+	# conditioned variables correspond to the previous trial
+
+	subj_psycho_t_v = Array{subj_psycho_t,1}() ;
+
+	tone_v = sort!(unique(subj_v[1].tone_v)) ;
+
+	if tone_v[1] == 0 
+		tone_v = tone_v[2:end] ;
+	end
+
+	for subj in subj_v
+		acc_m = Matrix{Float64}(undef, length(tone_v), 2) ;
+		rt_m = Matrix{Float64}(undef, length(tone_v), 2) ;
+
+		for i = 1 : length(tone_v)
+			mask_tone = get_mask_for_psychometric(subj.tone_v, subj.press_v, tone_v[i], 
+												conditioned_tone, conditioned_press);
+			n_trials = length(subj.tone_v[mask_tone]) ;
+
+			acc_m[i, :] = [count(x->x==4, subj.press_v[mask_tone])/n_trials, 
+							count(x->x==1, subj.press_v[mask_tone])/n_trials] ;
+			rt_m[i, :] = [mean(subj.rt_v[map((x,y) -> x == 4 && y == true, subj.press_v, mask_tone)]), 
+						mean(subj.rt_v[map((x,y) -> x == 1 && y == true, subj.press_v, mask_tone)])] ;
+		end
+		push!(subj_psycho_t_v, subj_psycho_t(subj.id, acc_m, rt_m, conditioned_tone, conditioned_press))
+	end	
+
+	return subj_psycho_t_v
+end
+
+function get_mask_for_psychometric(tone_v::Array{Int64,1}, press_v::Array{Int64,1},
+								tone::Int64, conditioned_tone::Int64, conditioned_press::Int64)
+
+	if conditioned_tone != 0 && conditioned_press != 0 
+		mask_tone = map((x,y,z,k) -> x == tone && y != 0 && 
+			z == conditioned_tone && k == conditioned_press, 
+			tone_v[2:end], press_v[2:end], 
+			tone_v[1:end-1], press_v[1:end-1]) ;
+
+		pushfirst!(mask_tone, false) ;
+		return mask_tone
+
+	elseif conditioned_tone != 0
+		mask_tone = map((x,y,z,k) -> x == tone && y != 0 && z == conditioned_tone && k != 0, 
+			tone_v[2:end], press_v[2:end], tone_v[1:end-1], press_v[1:end-1]) ;
+
+		pushfirst!(mask_tone, false) ;
+		return mask_tone
+
+	elseif conditioned_press != 0
+		mask_tone = map((x,y,z) -> x == tone && y != 0 && z == conditioned_press, 
+			tone_v[2:end], press_v[2:end], press_v[1:end-1]) ;
+
+		pushfirst!(mask_tone, false) ;
+		return mask_tone
+
+	else
+		mask_tone = map((x,y) -> x == tone && y != 0, tone_v, press_v) ;
+		return mask_tone
+	end
 end
