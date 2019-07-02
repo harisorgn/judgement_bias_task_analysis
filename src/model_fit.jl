@@ -33,7 +33,7 @@ end
 
 lb(x::Float64) = (x < 1e-6 || isnan(x)) ? 1e-6 : x
 
-function obj_func(x::Array{Float64})
+function obj_func(x::Array{Float64}, r_w::Float64)
 
 	log_lhood = 0.0 ;
 
@@ -82,18 +82,24 @@ function obj_func(x::Array{Float64})
 
 	for i = 1 : length(rat.rt_v)
 
-		(p_2_v, p_8_v, p_w_v) = task(x[1], x[2], x[3], x[4], rat.tone_v[i]) ;
+		(p_2_v, p_8_v, p_w_v) = trial_fit(x[1], x[2], x[3], x[4], rat.tone_v[i], r_w) ;
 
 		n_steps = Int64(floor(rat.rt_v[i] / dt)) ;
+		p_rt = 1.0 ;
 		for j = 1 : n_steps
-			log_lhood += log(lb(p_w_v[j])) ;
+			#log_lhood += log(lb(p_w_v[j])) ;
+			p_rt *= p_w_v[j] ;
 		end
 
 		if rat.response_v[i] == 4
-			log_lhood += log(lb(p_2_v[n_steps + 1])) ;
+			#log_lhood += log(lb(p_2_v[n_steps + 1])) ;
+			p_rt *= p_2_v[n_steps + 1] ;
 		elseif rat.response_v[i] == 1
-			log_lhood += log(lb(p_8_v[n_steps + 1])) ;
+			#log_lhood += log(lb(p_8_v[n_steps + 1])) ;
+			p_rt *= p_8_v[n_steps + 1] ;
 		end
+
+		log_lhood += log(lb(p_rt)) ;
 	end
 	return -log_lhood
 end

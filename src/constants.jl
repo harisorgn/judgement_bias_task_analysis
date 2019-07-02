@@ -8,17 +8,15 @@ const mi_lhood_2 = 2.0 ;
 const mi_lhood_8 = 8.0 ;
 const si_lhood = 0.789 ;
 
-const dt = 1e-2 ;
+const dt = 1e-1 ;
 const rt_max = 20.0 ;
 
 const r_2 = 1.0 ;
 const r_8 = 1.0 ;
-#const r_w = 2.5 ;
 
 #const c_win = 1.0 ;
 #const c_loss = 1.0 ;
 #const beta = 1.516 ;
-const c_w = 1.5 ;
 
 const p_x_2 = Normal(log(mi_2), sigma_tone) ;
 const p_x_8 = Normal(log(mi_8), sigma_tone) ;
@@ -36,6 +34,4 @@ const probe_header_v = ["Batch_ID", "HH_RT", "LL_RT", "HL_RT", "LH_RT",
 					"MH", "ML", "CBI",
 					"Om_H", "Om_L", "Om_M", "Prem", "M_RT"] ;
 					
-#const p_lhood_1 = Normal(log(mi_lhood_2), si_lhood) ;
-#const p_lhood_2 = Normal(log(mi_lhood_8), si_lhood) ;
 

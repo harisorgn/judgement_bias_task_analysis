@@ -32,7 +32,6 @@ function action(e_2::Float64, e_8::Float64, r_w::Float64, beta::Float64)
 
 	r = rand() ;
 
-	
 	if r <= p_2
 		return (2, p_2, p_8, p_w)
 	elseif r <= p_2 + p_8 && r > p_2
