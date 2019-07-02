@@ -25,13 +25,13 @@ function get_switch_after_incorr(subj_v::Array{subj_t,1})
 				n_more_than_two_sessions += 1 ;
 			end
 			for idx in subj_idx
-				for i = 2 : length(subj_v[idx].press_v)
+				for i = 2 : length(subj_v[idx].response_v)
 					if subj_v[idx].reward_v[i-1] == 0 && subj_v[idx].tone_v[i] == 5 && 
-						subj_v[idx].press_v[i-1] != 0 && subj_v[idx].press_v[i] != 0 &&
+						subj_v[idx].response_v[i-1] != 0 && subj_v[idx].response_v[i] != 0 &&
 						subj_v[idx].tone_v[i-1] != 0 && subj_v[idx].tone_v[i-1] != 5
 
 						n_incorr_before_amb += 1 ;
-						if subj_v[idx].press_v[i] != subj_v[idx].press_v[i-1]
+						if subj_v[idx].response_v[i] != subj_v[idx].response_v[i-1]
 							n_switch += 1 ;
 							push!(switch_rt_v, subj_v[idx].rt_v[i]) ;
 						else
@@ -39,7 +39,7 @@ function get_switch_after_incorr(subj_v::Array{subj_t,1})
 							n_not_switch += 1 ;
 						end
 					elseif subj_v[idx].tone_v[i] == 5 && 
-						subj_v[idx].press_v[i-1] != 0 && subj_v[idx].press_v[i] != 0 &&                                                      
+						subj_v[idx].response_v[i-1] != 0 && subj_v[idx].response_v[i] != 0 &&                                                      
 						subj_v[idx].tone_v[i-1] != 0 && subj_v[idx].tone_v[i-1] != 5
 
 						push!(not_switch_rt_v, subj_v[idx].rt_v[i]) ;
@@ -89,20 +89,20 @@ function get_switch_after_incorr_base(subj_v::Array{subj_t,1})
 				n_more_than_two_sessions += 1 ;
 			end
 			for idx in subj_idx
-				for i = 2 : length(subj_v[idx].press_v)
+				for i = 2 : length(subj_v[idx].response_v)
 					if subj_v[idx].reward_v[i-1] == 0 && 
-						subj_v[idx].press_v[i-1] != 0 && subj_v[idx].press_v[i] != 0
+						subj_v[idx].response_v[i-1] != 0 && subj_v[idx].response_v[i] != 0
 						subj_v[idx].tone_v[i-1] != 0 && subj_v[idx].tone_v[i] != 0
 
 						n_incorr += 1 ;
-						if subj_v[idx].press_v[i] != subj_v[idx].press_v[i-1]
+						if subj_v[idx].response_v[i] != subj_v[idx].response_v[i-1]
 							n_switch += 1 ;
 							push!(switch_rt_v, subj_v[idx].rt_v[i]) ;
 						else
 							push!(not_switch_rt_v, subj_v[idx].rt_v[i]) ;
 							n_not_switch += 1 ;
 						end
-					elseif subj_v[idx].press_v[i-1] != 0 && subj_v[idx].press_v[i] != 0
+					elseif subj_v[idx].response_v[i-1] != 0 && subj_v[idx].response_v[i] != 0
 						subj_v[idx].tone_v[i-1] != 0 && subj_v[idx].tone_v[i] != 0
 
 						push!(not_switch_rt_v, subj_v[idx].rt_v[i]) ;
@@ -149,10 +149,10 @@ function get_same_after_corr(subj_v::Array{subj_t,1})
 		if !haskey(dict, subj.id)
 			subj_idx = findall(x -> x.id == subj.id, subj_v) ;
 			for idx in subj_idx
-				for i = 2 : length(subj_v[idx].press_v)
+				for i = 2 : length(subj_v[idx].response_v)
 					if subj_v[idx].reward_v[i-1] != 0 && subj_v[idx].tone_v[i] == 5
 						n_corr_before_amb += 1 ;
-						if subj_v[idx].press_v[i] == subj_v[idx].press_v[i-1]
+						if subj_v[idx].response_v[i] == subj_v[idx].response_v[i-1]
 							n_same += 1 ;
 						end
 					end
@@ -195,14 +195,14 @@ function get_psychometric(subj_v::Array{subj_t,1}, conditioned_tone::Int64, cond
 		rt_m = Matrix{Float64}(undef, length(tone_v), 2) ;
 
 		for i = 1 : length(tone_v)
-			mask_tone = get_mask_for_psychometric(subj.tone_v, subj.press_v, subj.reward_v, tone_v[i], 
+			mask_tone = get_mask_for_psychometric(subj.tone_v, subj.response_v, subj.reward_v, tone_v[i], 
 												conditioned_tone, conditioned_reward);
 			n_trials = length(subj.tone_v[mask_tone]) ;
 
-			acc_m[i, :] = [count(x->x==4, subj.press_v[mask_tone])/n_trials, 
-							count(x->x==1, subj.press_v[mask_tone])/n_trials] ;
-			rt_m[i, :] = [mean(subj.rt_v[map((x,y) -> x == 4 && y == true, subj.press_v, mask_tone)]), 
-						mean(subj.rt_v[map((x,y) -> x == 1 && y == true, subj.press_v, mask_tone)])] ;
+			acc_m[i, :] = [count(x->x==2, subj.response_v[mask_tone])/n_trials, 
+							count(x->x==8, subj.response_v[mask_tone])/n_trials] ;
+			rt_m[i, :] = [mean(subj.rt_v[map((x,y) -> x == 2 && y == true, subj.response_v, mask_tone)]), 
+						mean(subj.rt_v[map((x,y) -> x == 8 && y == true, subj.response_v, mask_tone)])] ;
 		end
 		push!(subj_psycho_t_v, subj_psycho_t(subj.id, acc_m, rt_m, conditioned_tone, conditioned_reward))
 	end	
@@ -210,34 +210,34 @@ function get_psychometric(subj_v::Array{subj_t,1}, conditioned_tone::Int64, cond
 	return subj_psycho_t_v
 end
 
-function get_mask_for_psychometric(tone_v::Array{Int64,1}, press_v::Array{Int64,1}, reward_v::Array{Int64,1},
+function get_mask_for_psychometric(tone_v::Array{Int64,1}, response_v::Array{Int64,1}, reward_v::Array{Int64,1},
 								tone::Int64, conditioned_tone::Int64, conditioned_reward::Int64)
 
 	if conditioned_tone != -1 && conditioned_reward != -1 
 		mask_tone = map((x,y,z,k,l) -> x == tone && y != 0 && 
 			z == conditioned_tone && k != 0 && l == conditioned_reward, 
-			tone_v[2:end], press_v[2:end], 
-			tone_v[1:end-1], press_v[1:end-1], reward_v[1:end-1]) ;
+			tone_v[2:end], response_v[2:end], 
+			tone_v[1:end-1], response_v[1:end-1], reward_v[1:end-1]) ;
 
 		pushfirst!(mask_tone, false) ;
 		return mask_tone
 
 	elseif conditioned_tone != -1
 		mask_tone = map((x,y,z,k) -> x == tone && y != 0 && z == conditioned_tone && k != 0, 
-			tone_v[2:end], press_v[2:end], tone_v[1:end-1], press_v[1:end-1]) ;
+			tone_v[2:end], response_v[2:end], tone_v[1:end-1], response_v[1:end-1]) ;
 
 		pushfirst!(mask_tone, false) ;
 		return mask_tone
 
 	elseif conditioned_reward != -1
 		mask_tone = map((x,y,z) -> x == tone && y != 0 && z == conditioned_reward, 
-			tone_v[2:end], press_v[2:end], reward_v[1:end-1]) ;
+			tone_v[2:end], response_v[2:end], reward_v[1:end-1]) ;
 
 		pushfirst!(mask_tone, false) ;
 		return mask_tone
 
 	else
-		mask_tone = map((x,y) -> x == tone && y != 0, tone_v, press_v) ;
+		mask_tone = map((x,y) -> x == tone && y != 0, tone_v, response_v) ;
 		return mask_tone
 	end
 end

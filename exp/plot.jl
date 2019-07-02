@@ -168,10 +168,10 @@ function plot_rt(subj_v::Array{subj_t,1})
 	rt_LL_v = Array{Float64,1}() ;
 
 	for subj in subj_v
-		mask_MH = map((x,y) -> x == 5 && y == 4, subj.tone_v, subj.press_v) ;
-		mask_ML = map((x,y) -> x == 5 && y == 1, subj.tone_v, subj.press_v) ;
-		mask_HH = map((x,y) -> x == 2 && y == 4, subj.tone_v, subj.press_v) ;
-		mask_LL = map((x,y) -> x == 8 && y == 1, subj.tone_v, subj.press_v) ;
+		mask_MH = map((x,y) -> x == 5 && y == 2, subj.tone_v, subj.response_v) ;
+		mask_ML = map((x,y) -> x == 5 && y == 8, subj.tone_v, subj.response_v) ;
+		mask_HH = map((x,y) -> x == 2 && y == 2, subj.tone_v, subj.response_v) ;
+		mask_LL = map((x,y) -> x == 8 && y == 8, subj.tone_v, subj.response_v) ;
 
 		push!(rt_MH_v, mean(subj.rt_v[mask_MH])) ;
 		push!(rt_ML_v, mean(subj.rt_v[mask_ML])) ;
@@ -214,49 +214,49 @@ function plot_rt_prev(subj_v::Array{subj_t,1})
 
 	for subj in subj_v
 
-		# mask_Current tone Current press_Previous tone
+		# mask_Current tone Current response_Previous tone
 
-		mask_MH_H = map((x,y,z,k) -> x == 5 && y == 4 && z == 2 && k != 0, 
-			subj.tone_v[2:end], subj.press_v[2:end], subj.tone_v[1:end-1], subj.press_v[1:end-1]) ;
-		mask_MH_M = map((x,y,z,k) -> x == 5 && y == 4 && z == 5 && k != 0, 
-			subj.tone_v[2:end], subj.press_v[2:end], subj.tone_v[1:end-1], subj.press_v[1:end-1]) ;
-		mask_MH_L = map((x,y,z,k) -> x == 5 && y == 4 && z == 8 && k != 0, 
-			subj.tone_v[2:end], subj.press_v[2:end], subj.tone_v[1:end-1], subj.press_v[1:end-1]) ;
+		mask_MH_H = map((x,y,z,k) -> x == 5 && y == 2 && z == 2 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.tone_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_MH_M = map((x,y,z,k) -> x == 5 && y == 2 && z == 5 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.tone_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_MH_L = map((x,y,z,k) -> x == 5 && y == 2 && z == 8 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.tone_v[1:end-1], subj.response_v[1:end-1]) ;
 
-		mask_ML_H = map((x,y,z,k) -> x == 5 && y == 1 && z == 2 && k != 0, 
-			subj.tone_v[2:end], subj.press_v[2:end], subj.tone_v[1:end-1], subj.press_v[1:end-1]) ;
-		mask_ML_M = map((x,y,z,k) -> x == 5 && y == 1 && z == 5 && k != 0, 
-			subj.tone_v[2:end], subj.press_v[2:end], subj.tone_v[1:end-1], subj.press_v[1:end-1]) ;
-		mask_ML_L = map((x,y,z,k) -> x == 5 && y == 1 && z == 8 && k != 0, 
-			subj.tone_v[2:end], subj.press_v[2:end], subj.tone_v[1:end-1], subj.press_v[1:end-1]) ;
+		mask_ML_H = map((x,y,z,k) -> x == 5 && y == 8 && z == 2 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.tone_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_ML_M = map((x,y,z,k) -> x == 5 && y == 8 && z == 5 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.tone_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_ML_L = map((x,y,z,k) -> x == 5 && y == 8 && z == 8 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.tone_v[1:end-1], subj.response_v[1:end-1]) ;
 
-		mask_HH_H = map((x,y,z,k) -> x == 2 && y == 4 && z == 2 && k != 0, 
-			subj.tone_v[2:end], subj.press_v[2:end], subj.tone_v[1:end-1], subj.press_v[1:end-1]) ;
-		mask_HH_M = map((x,y,z,k) -> x == 2 && y == 4 && z == 5 && k != 0, 
-			subj.tone_v[2:end], subj.press_v[2:end], subj.tone_v[1:end-1], subj.press_v[1:end-1]) ;
-		mask_HH_L = map((x,y,z,k) -> x == 2 && y == 4 && z == 8 && k != 0, 
-			subj.tone_v[2:end], subj.press_v[2:end], subj.tone_v[1:end-1], subj.press_v[1:end-1]) ;
+		mask_HH_H = map((x,y,z,k) -> x == 2 && y == 2 && z == 2 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.tone_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_HH_M = map((x,y,z,k) -> x == 2 && y == 2 && z == 5 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.tone_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_HH_L = map((x,y,z,k) -> x == 2 && y == 2 && z == 8 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.tone_v[1:end-1], subj.response_v[1:end-1]) ;
 
-		mask_HL_H = map((x,y,z,k) -> x == 2 && y == 1 && z == 2 && k != 0, 
-			subj.tone_v[2:end], subj.press_v[2:end], subj.tone_v[1:end-1], subj.press_v[1:end-1]) ;
-		mask_HL_M = map((x,y,z,k) -> x == 2 && y == 1 && z == 5 && k != 0, 
-			subj.tone_v[2:end], subj.press_v[2:end], subj.tone_v[1:end-1], subj.press_v[1:end-1]) ;
-		mask_HL_L = map((x,y,z,k) -> x == 2 && y == 1 && z == 8 && k != 0, 
-			subj.tone_v[2:end], subj.press_v[2:end], subj.tone_v[1:end-1], subj.press_v[1:end-1]) ;
+		mask_HL_H = map((x,y,z,k) -> x == 2 && y == 8 && z == 2 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.tone_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_HL_M = map((x,y,z,k) -> x == 2 && y == 8 && z == 5 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.tone_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_HL_L = map((x,y,z,k) -> x == 2 && y == 8 && z == 8 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.tone_v[1:end-1], subj.response_v[1:end-1]) ;
 
-		mask_LH_H = map((x,y,z,k) -> x == 8 && y == 4 && z == 2 && k != 0, 
-			subj.tone_v[2:end], subj.press_v[2:end], subj.tone_v[1:end-1], subj.press_v[1:end-1]) ;
-		mask_LH_M = map((x,y,z,k) -> x == 8 && y == 4 && z == 5 && k != 0, 
-			subj.tone_v[2:end], subj.press_v[2:end], subj.tone_v[1:end-1], subj.press_v[1:end-1]) ;
-		mask_LH_L = map((x,y,z,k) -> x == 8 && y == 4 && z == 8 && k != 0, 
-			subj.tone_v[2:end], subj.press_v[2:end], subj.tone_v[1:end-1], subj.press_v[1:end-1]) ;
+		mask_LH_H = map((x,y,z,k) -> x == 8 && y == 2 && z == 2 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.tone_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_LH_M = map((x,y,z,k) -> x == 8 && y == 2 && z == 5 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.tone_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_LH_L = map((x,y,z,k) -> x == 8 && y == 2 && z == 8 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.tone_v[1:end-1], subj.response_v[1:end-1]) ;
 
-		mask_LL_H = map((x,y,z,k) -> x == 8 && y == 1 && z == 2 && k != 0, 
-			subj.tone_v[2:end], subj.press_v[2:end], subj.tone_v[1:end-1], subj.press_v[1:end-1]) ;
-		mask_LL_M = map((x,y,z,k) -> x == 8 && y == 1 && z == 5 && k != 0, 
-			subj.tone_v[2:end], subj.press_v[2:end], subj.tone_v[1:end-1], subj.press_v[1:end-1]) ;
-		mask_LL_L = map((x,y,z,k) -> x == 8 && y == 1 && z == 8 && k != 0, 
-			subj.tone_v[2:end], subj.press_v[2:end], subj.tone_v[1:end-1], subj.press_v[1:end-1]) ;
+		mask_LL_H = map((x,y,z,k) -> x == 8 && y == 8 && z == 2 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.tone_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_LL_M = map((x,y,z,k) -> x == 8 && y == 8 && z == 5 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.tone_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_LL_L = map((x,y,z,k) -> x == 8 && y == 8 && z == 8 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.tone_v[1:end-1], subj.response_v[1:end-1]) ;
 		
 		pushfirst!(mask_MH_H, false) ;
 		pushfirst!(mask_MH_M, false) ;
@@ -373,59 +373,100 @@ function plot_rt_prev(subj_v::Array{subj_t,1})
 
 	ax[:set_xticks]([x_ticks[2] - 5.0*3.0, x_ticks[2] - 4.0*3.0, x_ticks[2] - 3.0*3.0, 
 		x_ticks[2] - 2.0*3.0, x_ticks[2] - 1.0*3.0, x_ticks[2]])
-	ax[:set_xticklabels](["High tone \n High Press", "High tone \n Low Press",
-						"Mid tone \n High Press", "Mid tone \n Low Press",
-						"Low tone \n High Press", "Low tone \n Low Press"])
+	ax[:set_xticklabels](["High tone \n High response", "High tone \n Low response",
+						"Mid tone \n High response", "Mid tone \n Low response",
+						"Low tone \n High response", "Low tone \n Low response"])
 	ax[:tick_params](labelsize = 16)
 	ylabel("Response latency [s]", fontsize = 16)
 	legend(fontsize = 16)
 	show()
 end
 
-function plot_psychometric(subj_psycho_v::Array{subj_psycho_t,1})
+function plot_psychometric(subj_v::Array{subj_t,1} ; fit = false, curve = :log)
 
+	subj_psycho_v = get_psychometric(subj_v, -1, -1)	
 
 	n_tones = size(subj_psycho_v[1].acc_m, 1) ;
 	n_subj = length(subj_psycho_v) ;
 
-	r4_m = Matrix{Float64}(undef, n_tones, n_subj) ;
-	rt4_m = Matrix{Float64}(undef, n_tones, n_subj) ;
+	r_2_m = Matrix{Float64}(undef, n_tones, n_subj) ;
+	rt_2_m = Matrix{Float64}(undef, n_tones, n_subj) ;
 
-	r1_m = Matrix{Float64}(undef, n_tones, n_subj) ;
-	rt1_m = Matrix{Float64}(undef, n_tones, n_subj) ;
+	r_8_m = Matrix{Float64}(undef, n_tones, n_subj) ;
+	rt_8_m = Matrix{Float64}(undef, n_tones, n_subj) ;
+
+	x_data = [2.0, 4.5, 4.75, 5.25, 5.5, 8.0] ;
+	#x_data = [2.0, 4.0, 5.0, 6.0, 8.0] ;
 
 	i = 1 ;
 	for subj in subj_psycho_v 
-		r4_m[:, i] = subj.acc_m[:,1] ;
-		rt4_m[:, i] = subj.rt_m[:,1] ;
+		r_2_m[:, i] = subj.acc_m[:,1] ;
+		rt_2_m[:, i] = subj.rt_m[:,1] ;
 
-		r1_m[:, i] = subj.acc_m[:,2] ;
-		rt1_m[:, i] = subj.rt_m[:,2] ;
+		r_8_m[:, i] = subj.acc_m[:,2] ;
+		rt_8_m[:, i] = subj.rt_m[:,2] ;
 
 		i += 1 ;
 	end
 
 	figure()
 	ax = gca()
-	x_ticks = [0.0 + i for i in 1:n_tones] ;
 
 	for tone = 1 : n_tones
-		scatter(fill(x_ticks[tone], n_subj), r4_m[tone,:], alpha = 0.5)
-		errorbar(x_ticks[tone], mean(r4_m[tone,:]), yerr = std(r4_m[tone,:]), 
-				marker = "D", markersize = 10, capsize = 10)
+		scatter(fill(x_data[tone], n_subj), r_2_m[tone,:], alpha = 0.5, color = "black")
+		errorbar(x_data[tone], mean(r_2_m[tone,:]), yerr = std(r_2_m[tone,:]), 
+				marker = "D", markersize = 10, capsize = 10, color = "black")
 	end
 
-	title("High tone responses", fontsize = 16)
+	if fit
+		x = collect(2.0:0.1:8.0) ;
+
+		cf_2 = fit_psychometric(subj_v, x_data, 2, :log_std) ;
+		plot(x, log_std_model(x, cf_2),"-b")
+
+		cf_2 = fit_psychometric(subj_v, x_data, 2, :log_2std) ;
+		plot(x, log_2std_2_model(x, cf_2),"-r")
+
+		cf_2 = fit_psychometric(subj_v, x_data, 2, :sig) ;
+		plot(x, sig_model(x, cf_2),"-g")
+	end
+
+	title("High reward responses", fontsize = 16)
 	ax[:tick_params](labelsize = 16)
 
 	figure()
 	ax = gca()
-	x_ticks = [0.0 + i for i in 1:n_tones] ;
 
 	for tone = 1 : n_tones
-		scatter(fill(x_ticks[tone], n_subj), rt4_m[tone,:], alpha = 0.5)
-		errorbar(x_ticks[tone], mean(rt4_m[tone,map(x->!isnan(x), rt4_m[tone,:])]), 
-				yerr = std(rt4_m[tone,map(x->!isnan(x), rt4_m[tone,:])]), marker = "D", markersize = 10, capsize = 10)
+		scatter(fill(x_data[tone], n_subj), r_8_m[tone,:], alpha = 0.5, color = "black")
+		errorbar(x_data[tone], mean(r_8_m[tone,:]), yerr = std(r_8_m[tone,:]), 
+				marker = "D", markersize = 10, capsize = 10, color = "black")
+	end
+
+	if fit
+		x = collect(2.0:0.1:8.0) ;
+		
+		cf_8 = fit_psychometric(subj_v, x_data, 8, :log_std) ;
+		plot(x, log_std_model(x, cf_8),"-b")
+
+		cf_8 = fit_psychometric(subj_v, x_data, 8, :log_2std) ;
+		plot(x, log_2std_8_model(x, cf_8),"-r")
+
+		cf_8 = fit_psychometric(subj_v, x_data, 8, :sig) ;
+		plot(x, sig_model(x, cf_8),"-g")
+	end
+
+	title("Low reward responses", fontsize = 16)
+	ax[:tick_params](labelsize = 16)
+
+	#=
+	figure()
+	ax = gca()
+
+	for tone = 1 : n_tones
+		scatter(fill(x_data[tone], n_subj), rt_2_m[tone,:], alpha = 0.5)
+		errorbar(x_data[tone], mean(rt_2_m[tone,map(x->!isnan(x), rt4_m[tone,:])]), 
+				yerr = std(rt_2_m[tone,map(x->!isnan(x), rt4_m[tone,:])]), marker = "D", markersize = 10, capsize = 10)
 	end
 
 	title("High tone RTs", fontsize = 16)
@@ -433,30 +474,16 @@ function plot_psychometric(subj_psycho_v::Array{subj_psycho_t,1})
 
 	figure()
 	ax = gca()
-	x_ticks = [0.0 + i for i in 1:n_tones] ;
 
 	for tone = 1 : n_tones
-		scatter(fill(x_ticks[tone], n_subj), r1_m[tone,:], alpha = 0.5)
-		errorbar(x_ticks[tone], mean(r1_m[tone,:]), yerr = std(r1_m[tone,:]), 
-				marker = "D", markersize = 10, capsize = 10)
-	end
-
-	title("Low tone responses", fontsize = 16)
-	ax[:tick_params](labelsize = 16)
-
-	figure()
-	ax = gca()
-	x_ticks = [0.0 + i for i in 1:n_tones] ;
-
-	for tone = 1 : n_tones
-		scatter(fill(x_ticks[tone], n_subj), rt1_m[tone,:], alpha = 0.5)
-		errorbar(x_ticks[tone], mean(rt1_m[tone,map(x->!isnan(x), rt1_m[tone,:])]), 
-				yerr = std(rt1_m[tone,map(x->!isnan(x), rt1_m[tone,:])]), marker = "D", markersize = 10, capsize = 10)
+		scatter(fill(x_data[tone], n_subj), rt_8_m[tone,:], alpha = 0.5)
+		errorbar(x_data[tone], mean(rt_8_m[tone,map(x->!isnan(x), rt1_m[tone,:])]), 
+				yerr = std(rt_8_m[tone,map(x->!isnan(x), rt1_m[tone,:])]), marker = "D", markersize = 10, capsize = 10)
 	end
 
 	title("Low tone RTs", fontsize = 16)
 	ax[:tick_params](labelsize = 16)
-
+	=#
 	show()
 end
 
@@ -475,7 +502,7 @@ function plot_mi(mi_pr_v::Array{Float64,1}, mi_pp_v::Array{Float64,1}, mi_prp_v:
 	xticks(x_ticks, [string(i) for i in 1:n_trials_in_the_past])
 	xlabel("Trials in the past", fontsize = 16)
 	ylabel("I", fontsize = 16)
-	title("Press ; past reward", fontsize = 16)
+	title("response ; past reward", fontsize = 16)
 	legend()
 
 	figure()
@@ -484,7 +511,7 @@ function plot_mi(mi_pr_v::Array{Float64,1}, mi_pp_v::Array{Float64,1}, mi_prp_v:
 	xticks(x_ticks, [string(i) for i in 1:n_trials_in_the_past])
 	xlabel("Trials in the past", fontsize = 16)
 	ylabel("I", fontsize = 16)
-	title("Press ; past press", fontsize = 16)
+	title("response ; past response", fontsize = 16)
 	legend()
 
 	figure()
@@ -493,7 +520,7 @@ function plot_mi(mi_pr_v::Array{Float64,1}, mi_pp_v::Array{Float64,1}, mi_prp_v:
 	xticks(x_ticks, [string(i) for i in 1:n_trials_in_the_past])
 	xlabel("Trials in the past", fontsize = 16)
 	ylabel("I", fontsize = 16)
-	title("Press ; past reward | past press", fontsize = 16)
+	title("response ; past reward | past response", fontsize = 16)
 	legend()
 
 	figure()
@@ -502,7 +529,7 @@ function plot_mi(mi_pr_v::Array{Float64,1}, mi_pp_v::Array{Float64,1}, mi_prp_v:
 	xticks(x_ticks, [string(i) for i in 1:n_trials_in_the_past])
 	xlabel("Trials in the past", fontsize = 16)
 	ylabel("I", fontsize = 16)
-	title("Press ; past press | past reward", fontsize = 16)
+	title("response ; past response | past reward", fontsize = 16)
 	legend()
 
 	figure()
@@ -511,7 +538,7 @@ function plot_mi(mi_pr_v::Array{Float64,1}, mi_pp_v::Array{Float64,1}, mi_prp_v:
 	xticks(x_ticks, [string(i) for i in 1:n_trials_in_the_past])
 	xlabel("Trials in the past", fontsize = 16)
 	ylabel("I", fontsize = 16)
-	title("Press ; past tone", fontsize = 16)
+	title("response ; past tone", fontsize = 16)
 	legend()
 	
 	show()
