@@ -52,7 +52,7 @@ function task(sigma::Float64, beta::Float64, c_win::Float64, c_loss::Float64)
 end
 
 function trial_fit(sigma::Float64, beta::Float64, c_win::Float64, c_loss::Float64,
-					tone::Int64, r_w::Float64)
+					r_w::Float64, tone::Int64)
 	
 	p_2_v = Array{Float64,1}(undef, Int64(rt_max / dt) + 1) ;
 	p_8_v = Array{Float64,1}(undef, Int64(rt_max / dt) + 1) ;

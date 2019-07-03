@@ -13,14 +13,11 @@ end
 
 function expected_outcome(p_post_2::Float64, p_post_8::Float64, c_win::Float64, c_loss::Float64)
 
-	e_2 = p_post_2 * c_win * r_2 - (1 - p_post_2) * c_loss * r_8 ;
-	e_8 = p_post_8 * c_win * r_8 - (1 - p_post_8) * c_loss * r_2 ;
+	e_2 = p_post_2 * c_win * r_2 - (1.0 - p_post_2) * c_loss * r_8 ;
+	e_8 = p_post_8 * c_win * r_8 - (1.0 - p_post_8) * c_loss * r_2 ;
 
 	return [e_2, e_8]
 end
-
-#subj_value(obj_value::Float64) = c_win * obj_value ;
-#subj_loss(obj_value::Float64) = c_loss * obj_value ;
 
 function action(e_2::Float64, e_8::Float64, r_w::Float64, beta::Float64)
 
