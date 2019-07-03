@@ -19,16 +19,24 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 
 	for file_name in file_v
 		
-		file = CSV.File(string(path, file_name)) ;
+		file_rows = collect(CSV.Rows(string(path, file_name), header = 0, normalizenames = true)) ;
+
 		write_v = Array{Array{Any,1},1}() ;
 		session = :not_interesting ;
 		dt_row_len = 0 ;
 		first_time = true ;
 		subj_id = "" ;
 
-		while !CSV.eof(file.io)
+		filter!(x -> !(x[1] === missing), file_rows) ;
 
-			rf = CSV.readsplitline(file.io) ;
+		#while !CSV.eof(file)
+		n_rows_parsed = 1 ;
+
+		while n_rows_parsed < length(file_rows)
+			#rf = CSV.readsplitline(file.io) ;
+			#println(rf[1])
+			rf = file_rows[n_rows_parsed] ;
+			n_rows_parsed += 1 ;
 
 			if occursin("AC Comment", rf[1])
 				if occursin("Pure", rf[3])
@@ -62,12 +70,16 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 			if occursin("Ref", rf[1]) && occursin("Outcome", rf[2]) && session != :not_interesting
 				
 				subj_m = Array{Int64,1}() ;
-				rf = CSV.readsplitline(file.io) ;
+				#rf = CSV.readsplitline(file.io) ;
+				rf = file_rows[n_rows_parsed] ;
+				n_rows_parsed += 1 ;
 
 				while !occursin("ENDDATA", rf[1]) && !occursin("-1", rf[1])
 
 					append!(subj_m, map(x->tryparse(Int64,x), rf[1:dt_row_len])) ;
-					rf = CSV.readsplitline(file.io) ;
+					#rf = CSV.readsplitline(file.io) ;
+					rf = file_rows[n_rows_parsed] ;
+					n_rows_parsed += 1 ;
 
 				end
 
@@ -75,7 +87,7 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 
 				if session == :probe && session_to_analyse == :probe
 					if first_time
-						println(file.name)
+						println(file_name)
 						first_time = false ;
 					end
 
@@ -87,7 +99,7 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 					end					
 				elseif	session == :probe_1vs1 && session_to_analyse == :probe
 					if first_time
-						println(file.name)
+						println(file_name)
 						first_time = false ;
 					end
 					
@@ -99,7 +111,7 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 					end					
 				elseif session == :probe_mult_amb && session_to_analyse == :probe
 					if first_time
-						println(file.name)
+						println(file_name)
 						first_time = false ;
 					end
 
@@ -111,7 +123,7 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 					end		
 				elseif session == :probe_mult_amb_1v1 && session_to_analyse == :probe
 					if first_time
-						println(file.name)
+						println(file_name)
 						first_time = false ;
 					end
 
@@ -123,7 +135,7 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 					end				
 				elseif (session == :t1v1 || session == :t4v1) && session_to_analyse == :train
 					if first_time
-						println(file.name)
+						println(file_name)
 						first_time = false ;
 					end
 
@@ -135,7 +147,7 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 					end
 				elseif session == :pulses && session_to_analyse == :train
 					if first_time
-						println(file.name)
+						println(file_name)
 						first_time = false ;
 					end
 
@@ -838,9 +850,9 @@ function write_xlsx(row_write_v::Array{Array{Any,1},1}, session::Symbol, in_file
 		push!(column_write_v, map(x -> x[i], row_write_v)) ;
 	end 
 
-	df = DataFrame(Dict(map((x,y) -> x=>y, header_v, column_write_v))) ;
-
-	XLSX.writetable(xlsx_file, DataFrames.columns(df), DataFrames.names(df), overwrite = true) ;
+	df = DataFrames.DataFrame(Dict(map((x,y) -> x=>y, header_v, column_write_v))) ;
+	
+	XLSX.writetable(xlsx_file, DataFrames.eachcol(df), DataFrames.names(df), overwrite = true) ;
 end
 
 function old_klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)

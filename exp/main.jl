@@ -11,12 +11,12 @@ include("fit.jl")
 
 session_to_analyse = :probe ;
 write_flag = true ;
-path = "./ch14/multiple amb/1st session/"
+path = "./ho2/4vs1 probe/"
 
 #klimb_mi(path, session_to_analyse, 10) 
 subj_v = klimb_read(path, session_to_analyse, write_flag)
 
-plot_psychometric(subj_v, fit = true, curve = :log_2std)
+#plot_psychometric(subj_v, fit = true, curve = :log_2std)
 
 #plot(subj_v[16].rr_v)
 #plot(fill(mean(subj_v[16].rr_v), length(subj_v[16].rr_v)), "--k")
