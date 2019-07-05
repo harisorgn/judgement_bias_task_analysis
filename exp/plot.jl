@@ -395,8 +395,8 @@ function plot_psychometric(subj_v::Array{subj_t,1} ; fit = false, curve = :log)
 	r_8_m = Matrix{Float64}(undef, n_tones, n_subj) ;
 	rt_8_m = Matrix{Float64}(undef, n_tones, n_subj) ;
 
-	x_data = [2.0, 4.5, 4.75, 5.25, 5.5, 8.0] ;
-	#x_data = [2.0, 4.0, 5.0, 6.0, 8.0] ;
+	#x_data = [2.0, 4.5, 4.75, 5.25, 5.5, 8.0] ;
+	x_data = [2.0, 4.0, 5.0, 6.0, 8.0] ;
 
 	i = 1 ;
 	for subj in subj_psycho_v 
@@ -418,21 +418,28 @@ function plot_psychometric(subj_v::Array{subj_t,1} ; fit = false, curve = :log)
 				marker = "D", markersize = 10, capsize = 10, color = "black")
 	end
 
-	if fit
+	if fit && curve == :all
 		x = collect(2.0:0.1:8.0) ;
 
 		cf_2 = fit_psychometric(subj_v, x_data, 2, :log_std) ;
-		plot(x, log_std_model(x, cf_2),"-b")
+		plot(x, log_std_model(x, cf_2),"-b", label = "log 1 std")
 
 		cf_2 = fit_psychometric(subj_v, x_data, 2, :log_2std) ;
-		plot(x, log_2std_2_model(x, cf_2),"-r")
+		plot(x, log_2std_2_model(x, cf_2),"-r", label = "log 2 std")
+
+		cf_2 = fit_psychometric(subj_v, x_data, 2, :log_std_offset) ;
+		plot(x, log_std_model(x, cf_2),"-m", label = "log 1 std 1 offset")
+
+		cf_2 = fit_psychometric(subj_v, x_data, 2, :log_std_2offset) ;
+		plot(x, log_2std_2_model(x, cf_2),"-c", label = "log 1 std 2 offset")
 
 		cf_2 = fit_psychometric(subj_v, x_data, 2, :sig) ;
-		plot(x, sig_model(x, cf_2),"-g")
+		plot(x, sig_model(x, cf_2),"-g", label = "sigmoid 4 parameters")
 	end
 
+	legend(fontsize = 20)
 	title("High reward responses", fontsize = 16)
-	ax[:tick_params](labelsize = 16)
+	ax[:tick_params](labelsize = 20)
 
 	figure()
 	ax = gca()
@@ -443,21 +450,28 @@ function plot_psychometric(subj_v::Array{subj_t,1} ; fit = false, curve = :log)
 				marker = "D", markersize = 10, capsize = 10, color = "black")
 	end
 
-	if fit
+	if fit && curve == :all
 		x = collect(2.0:0.1:8.0) ;
 		
 		cf_8 = fit_psychometric(subj_v, x_data, 8, :log_std) ;
-		plot(x, log_std_model(x, cf_8),"-b")
+		plot(x, log_std_model(x, cf_8),"-b", label = "log 1 std")
 
 		cf_8 = fit_psychometric(subj_v, x_data, 8, :log_2std) ;
-		plot(x, log_2std_8_model(x, cf_8),"-r")
+		plot(x, log_2std_8_model(x, cf_8),"-r", label = "log 2 std")
+
+		cf_8 = fit_psychometric(subj_v, x_data, 8, :log_std_offset) ;
+		plot(x, log_std_model(x, cf_8),"-m", label = "log 1 std 1 offset")
+
+		cf_8 = fit_psychometric(subj_v, x_data, 8, :log_std_2offset) ;
+		plot(x, log_2std_2_model(x, cf_8),"-c", label = "log 1 std 2 offset")
 
 		cf_8 = fit_psychometric(subj_v, x_data, 8, :sig) ;
-		plot(x, sig_model(x, cf_8),"-g")
+		plot(x, sig_model(x, cf_8),"-g", label = "sigmoid 4 parameters")
 	end
 
+	legend(fontsize = 20)
 	title("Low reward responses", fontsize = 16)
-	ax[:tick_params](labelsize = 16)
+	ax[:tick_params](labelsize = 20)
 
 	#=
 	figure()

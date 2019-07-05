@@ -19,7 +19,11 @@ using LsqFit
 @. log_std_offset_8_model(x,p) = 1.0 / 
 		(1.0 + exp(log((2.0 - p[1])/(8.0 + p[1]))*log(x/sqrt((2.0 - p[1])*(8.0 + p[1])))/(p[2]^2.0)))
 
+@. log_std_2offset_2_model(x,p) = 1.0 / 
+		(1.0 + exp(log((8.0 + p[2])/(2.0 - p[1]))*log(x/sqrt((2.0 - p[1])*(8.0 + p[2])))/(p[3]^2.0)))
 
+@. log_std_2offset_8_model(x,p) = 1.0 / 
+		(1.0 + exp(log((2.0 - p[1])/(8.0 + p[2]))*log(x/sqrt((2.0 - p[1])*(8.0 + p[2])))/(p[3]^2.0)))
 
 function fit_psychometric(subj_v::Array{subj_t,1}, x_data::Array{Float64,1}, response::Int64, curve::Symbol)
 
@@ -80,10 +84,28 @@ function fit_psychometric(subj_v::Array{subj_t,1}, x_data::Array{Float64,1}, res
 			fit = curve_fit(log_std_offset_2_model, x_data, y_data, p0, lower = lb, upper = ub) ;
 		elseif response == 8
 			lb = [0.0, 0.0] ;
+			ub = [2.0, 5.0] ;
+			p0 = [0.2, 2.0] ;
+
+			fit = curve_fit(log_std_offset_8_model, x_data, y_data, p0, lower = lb, upper = ub) ;
+		else
+			println("Invalid response index")
+			return -1
+		end
+
+	elseif curve == :log_std_2offset
+		if response == 2
+			lb = [0.0, 0.0, 0.0] ;
+			ub = [2.0, 2.0, 5.0] ;
+			p0 = [0.2, 0.2, 2.0] ;
+
+			fit = curve_fit(log_std_2offset_2_model, x_data, y_data, p0, lower = lb, upper = ub) ;
+		elseif response == 8
+			lb = [0.0, 0.0] ;
 			ub = [1.0, 5.0] ;
 			p0 = [0.1, 2.0] ;
 
-			fit = curve_fit(log_std_offset_8_model, x_data, y_data, p0, lower = lb, upper = ub) ;
+			fit = curve_fit(log_std_2offset_8_model, x_data, y_data, p0, lower = lb, upper = ub) ;
 		else
 			println("Invalid response index")
 			return -1

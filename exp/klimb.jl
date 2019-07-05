@@ -7,6 +7,35 @@ struct subj_t
 	cbi::Float64
 end
 
+function read_csv_var_cols(file_path::String)
+
+	max_ncols = 0 ;
+
+	f = open(file_path)
+	while !eof(f)
+		new_line = split(strip(readline(f)),',') ;
+		if length(new_line) > max_ncols
+			max_ncols = length(new_line)
+		end
+	end
+	close(f)
+
+	f = open(file_path)
+	headers = [string("col",i) for i = 1 : max_ncols]
+	ncols = max_ncols ;
+	data = [String[] for i=1:ncols]
+	while !eof(f)
+		new_line = split(strip(readline(f)),',')
+		length(new_line)<ncols && append!(new_line,["" for i=1:ncols-length(new_line)])
+		for i=1:ncols
+		  push!(data[i],new_line[i])
+		end
+	end
+
+	close(f)
+	return DataFrame(;OrderedDict(Symbol(headers[i])=>data[i] for i=1:ncols)...)
+end
+
 function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 
 	if isempty(path)
@@ -19,7 +48,7 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 
 	for file_name in file_v
 		
-		file_rows = collect(CSV.Rows(string(path, file_name), header = 0, normalizenames = true)) ;
+		df = read_csv_var_cols(string(path, file_name)) ;
 
 		write_v = Array{Array{Any,1},1}() ;
 		session = :not_interesting ;
@@ -27,60 +56,50 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 		first_time = true ;
 		subj_id = "" ;
 
-		filter!(x -> !(x[1] === missing), file_rows) ;
+		row_idx = 0 ;
 
-		#while !CSV.eof(file)
-		n_rows_parsed = 1 ;
+		while row_idx < DataFrames.nrow(df)
 
-		while n_rows_parsed < length(file_rows)
-			#rf = CSV.readsplitline(file.io) ;
-			#println(rf[1])
-			rf = file_rows[n_rows_parsed] ;
-			n_rows_parsed += 1 ;
+			row_idx += 1 ;
 
-			if occursin("AC Comment", rf[1])
-				if occursin("Pure", rf[3])
+			if occursin("AC Comment", df[row_idx, 1])
+				if occursin("Pure", df[row_idx, 3])
 					session = :t4v1 ;
 					dt_row_len = 18 ;
-				elseif occursin("Discrimination", rf[3])
+				elseif occursin("Discrimination", df[row_idx, 3])
 					session = :t1v1 ;
 					dt_row_len = 18 ;
-				elseif occursin("Route", rf[3])
+				elseif occursin("Route", df[row_idx, 3])
 					session = :pulses ;
 					dt_row_len = 22 ;
-				elseif occursin("Probe", rf[3]) && occursin("midpoint", rf[3])
+				elseif occursin("Probe", df[row_idx, 3]) && occursin("midpoint", df[row_idx, 3])
 					session = :probe ;
 					dt_row_len = 20 ;
-				elseif occursin("Probe", rf[3]) && occursin("1 vs 1", rf[3])
+				elseif occursin("Probe", df[row_idx, 3]) && occursin("1 vs 1", df[row_idx, 3])
 					session = :probe_1vs1 ;
 					dt_row_len = 22 ;
-				elseif occursin("Probe", rf[3]) && occursin("multiple", rf[3])
+				elseif occursin("Probe", df[row_idx, 3]) && occursin("multiple", df[row_idx, 3])
 					session = :probe_mult_amb ;
 					dt_row_len = 30 ;
-				elseif occursin("Probe", rf[3]) && occursin("tones", rf[3])
+				elseif occursin("Probe", df[row_idx, 3]) && occursin("tones", df[row_idx, 3])
 					session = :probe_mult_amb_1v1 ;
 					dt_row_len = 13 ;
 				end
 			end
 
-			if occursin("Id", rf[1])
-				subj_id = rf[2] ;
+			if occursin("Id", df[row_idx, 1])
+				subj_id = df[row_idx, 2] ;
 			end
-
-			if occursin("Ref", rf[1]) && occursin("Outcome", rf[2]) && session != :not_interesting
+			
+			if occursin("Ref", df[row_idx, 1]) && occursin("Outcome", df[row_idx, 2]) && session != :not_interesting
 				
 				subj_m = Array{Int64,1}() ;
-				#rf = CSV.readsplitline(file.io) ;
-				rf = file_rows[n_rows_parsed] ;
-				n_rows_parsed += 1 ;
+				row_idx += 1 ;
 
-				while !occursin("ENDDATA", rf[1]) && !occursin("-1", rf[1])
+				while !occursin("ENDDATA", df[row_idx, 1]) && !occursin("-1", df[row_idx, 1])
 
-					append!(subj_m, map(x->tryparse(Int64,x), rf[1:dt_row_len])) ;
-					#rf = CSV.readsplitline(file.io) ;
-					rf = file_rows[n_rows_parsed] ;
-					n_rows_parsed += 1 ;
-
+					append!(subj_m, map(x->tryparse(Int64,x), df[row_idx, 1:dt_row_len])) ;
+					row_idx += 1 ;
 				end
 
 				subj_m = permutedims(reshape(subj_m, dt_row_len, :), (2,1)) ;
@@ -192,46 +211,57 @@ function klimb_mi(path::String, session_to_analyse::Symbol, n_trials_in_the_past
 	for i = 1 : n_trials_in_the_past
 	for file_name in file_v
 		
-		file = CSV.File(string(path, file_name)) ;
+		df = read_csv_var_cols(string(path, file_name)) ;
+
 		write_v = Array{Array{Any,1},1}() ;
 		session = :not_interesting ;
 		dt_row_len = 0 ;
 		subj_id = "" ;
 
-		while !CSV.eof(file.io)
+		row_idx = 0 ;
 
-			rf = CSV.readsplitline(file.io) ;
+		while row_idx < DataFrames.nrow(df)
 
-			if occursin("AC Comment", rf[1])
-				if occursin("Pure", rf[3])
+			row_idx += 1 ;
+
+			if occursin("AC Comment", df[row_idx, 1])
+				if occursin("Pure", df[row_idx, 3])
 					session = :t4v1 ;
 					dt_row_len = 18 ;
-				elseif occursin("Discrimination", rf[3])
+				elseif occursin("Discrimination", df[row_idx, 3])
 					session = :t1v1 ;
 					dt_row_len = 18 ;
-				elseif occursin("Probe", rf[3]) && occursin("midpoint", rf[3])
+				elseif occursin("Route", df[row_idx, 3])
+					session = :pulses ;
+					dt_row_len = 22 ;
+				elseif occursin("Probe", df[row_idx, 3]) && occursin("midpoint", df[row_idx, 3])
 					session = :probe ;
 					dt_row_len = 20 ;
-				elseif occursin("Probe", rf[3]) && occursin("1 vs 1", rf[3])
+				elseif occursin("Probe", df[row_idx, 3]) && occursin("1 vs 1", df[row_idx, 3])
 					session = :probe_1vs1 ;
 					dt_row_len = 22 ;
+				elseif occursin("Probe", df[row_idx, 3]) && occursin("multiple", df[row_idx, 3])
+					session = :probe_mult_amb ;
+					dt_row_len = 30 ;
+				elseif occursin("Probe", df[row_idx, 3]) && occursin("tones", df[row_idx, 3])
+					session = :probe_mult_amb_1v1 ;
+					dt_row_len = 13 ;
 				end
 			end
 
-			if occursin("Id", rf[1])
-				subj_id = rf[2] ;
+			if occursin("Id", df[row_idx, 1])
+				subj_id = df[row_idx, 2] ;
 			end
 
-			if occursin("Ref", rf[1]) && occursin("Outcome", rf[2]) && session != :not_interesting
+			if occursin("Ref", df[row_idx, 1]) && occursin("Outcome", df[row_idx, 2]) && session != :not_interesting
 				
 				subj_m = Array{Int64,1}() ;
-				rf = CSV.readsplitline(file.io) ;
+				row_idx += 1 ;
 
-				while !occursin("ENDDATA", rf[1]) && !occursin("-1", rf[1])
+				while !occursin("ENDDATA", df[row_idx, 1]) && !occursin("-1", df[row_idx, 1])
 
-					append!(subj_m, map(x->tryparse(Int64,x), rf[1:dt_row_len])) ;
-					rf = CSV.readsplitline(file.io) ;
-
+					append!(subj_m, map(x->tryparse(Int64,x), df[row_idx, 1:dt_row_len])) ;
+					row_idx += 1 ;
 				end
 
 				subj_m = permutedims(reshape(subj_m, dt_row_len, :), (2,1)) ;
