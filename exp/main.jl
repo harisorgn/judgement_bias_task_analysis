@@ -1,6 +1,9 @@
-using CSV, DataStreams, XLSX, DataFrames,  DataStructures
-using Distributions, HypothesisTests, Discreet, StatsBase, Statistics, Random
+using XLSX, DataFrames,  DataStructures
+using Statistics, Distributions, HypothesisTests, Random
+using Optim, LineSearches, ForwardDiff, DiffEqDiffTools, LinearAlgebra
+using RecursiveArrayTools
 
+include("general_io.jl")
 include("klimb.jl")
 include("analysis.jl")
 include("constants.jl")
@@ -10,17 +13,12 @@ include("fit.jl")
 
 
 session_to_analyse = :probe ;
-write_flag = true ;
-path = "./er12/"
+write_flag = false ;
+path = "./ch14/multiple amb/1st session/"
 
-#klimb_mi(path, session_to_analyse, 10) 
 subj_v = klimb_read(path, session_to_analyse, write_flag)
 
 plot_psychometric(subj_v, fit = true, curve = :all)
-
-#plot(subj_v[16].rr_v)
-#plot(fill(mean(subj_v[16].rr_v), length(subj_v[16].rr_v)), "--k")
-#show()
 
 #plot_rt_prev(subj_v)
 

@@ -7,35 +7,6 @@ struct subj_t
 	cbi::Float64
 end
 
-function read_csv_var_cols(file_path::String)
-
-	max_ncols = 0 ;
-
-	f = open(file_path)
-	while !eof(f)
-		new_line = split(strip(readline(f)),',') ;
-		if length(new_line) > max_ncols
-			max_ncols = length(new_line)
-		end
-	end
-	close(f)
-
-	f = open(file_path)
-	headers = [string("col",i) for i = 1 : max_ncols]
-	ncols = max_ncols ;
-	data = [String[] for i=1:ncols]
-	while !eof(f)
-		new_line = split(strip(readline(f)),',')
-		length(new_line)<ncols && append!(new_line,["" for i=1:ncols-length(new_line)])
-		for i=1:ncols
-		  push!(data[i],new_line[i])
-		end
-	end
-
-	close(f)
-	return DataFrame(;OrderedDict(Symbol(headers[i])=>data[i] for i=1:ncols)...)
-end
-
 function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 
 	if isempty(path)
@@ -56,6 +27,7 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 		first_time = true ;
 		subj_id = "" ;
 
+		probe_tone_1v1 = 0 ;
 		row_idx = 0 ;
 
 		while row_idx < DataFrames.nrow(df)
@@ -66,6 +38,18 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 				if occursin("Pure", df[row_idx, 3])
 					session = :t4v1 ;
 					dt_row_len = 18 ;
+				elseif occursin("Discrimination", df[row_idx, 3]) && occursin("5.5kHz", df[row_idx, 3])
+					session = :probe_var_p_1v1 ;
+					dt_row_len = 16 ;
+					probe_tone_1v1 = 4 ; # 5.5 kHz
+				elseif occursin("Discrimination", df[row_idx, 3]) && occursin("5kHz", df[row_idx, 3])
+					session = :probe_var_p_1v1 ;
+					dt_row_len = 16 ;
+					probe_tone_1v1 = 3 ; # 5 kHz
+				elseif occursin("Discrimination", df[row_idx, 3]) && occursin("6kHz", df[row_idx, 3])
+					session = :probe_var_p_1v1 ;
+					dt_row_len = 16 ;
+					probe_tone_1v1 = 5 ; # 6 kHz
 				elseif occursin("Discrimination", df[row_idx, 3])
 					session = :t1v1 ;
 					dt_row_len = 18 ;
@@ -76,13 +60,13 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 					session = :probe ;
 					dt_row_len = 20 ;
 				elseif occursin("Probe", df[row_idx, 3]) && occursin("1 vs 1", df[row_idx, 3])
-					session = :probe_1vs1 ;
+					session = :probe_1v1 ;
 					dt_row_len = 22 ;
 				elseif occursin("Probe", df[row_idx, 3]) && occursin("multiple", df[row_idx, 3])
-					session = :probe_mult_amb ;
+					session = :probe_mult_p ;
 					dt_row_len = 30 ;
 				elseif occursin("Probe", df[row_idx, 3]) && occursin("tones", df[row_idx, 3])
-					session = :probe_mult_amb_1v1 ;
+					session = :probe_mult_p_1v1 ;
 					dt_row_len = 13 ;
 				end
 			end
@@ -116,7 +100,7 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 						push!(subj_t_v, subj_t) ;
 						push!(write_v, subj_write_v) ;
 					end					
-				elseif	session == :probe_1vs1 && session_to_analyse == :probe
+				elseif	session == :probe_1v1 && session_to_analyse == :probe
 					if first_time
 						println(file_name)
 						first_time = false ;
@@ -128,27 +112,39 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 						push!(subj_t_v, subj_t) ;
 						push!(write_v, subj_write_v) ;
 					end					
-				elseif session == :probe_mult_amb && session_to_analyse == :probe
+				elseif session == :probe_mult_p && session_to_analyse == :probe
 					if first_time
 						println(file_name)
 						first_time = false ;
 					end
 
-					subj_t , subj_write_v = get_probe_mult_amb_subj(subj_m, subj_id, 0) ;
+					subj_t , subj_write_v = get_probe_mult_p_subj(subj_m, subj_id, 0) ;
 
 					if subj_write_v[14] >= acc_criterion && subj_write_v[15] >= acc_criterion
 						push!(subj_t_v, subj_t) ;
 						push!(write_v, subj_write_v) ;
 					end		
-				elseif session == :probe_mult_amb_1v1 && session_to_analyse == :probe
+				elseif session == :probe_mult_p_1v1 && session_to_analyse == :probe
 					if first_time
 						println(file_name)
 						first_time = false ;
 					end
 
-					subj_t , subj_write_v = get_probe_mult_amb_1v1_subj(subj_m, subj_id) ;
+					subj_t , subj_write_v = get_probe_mult_p_1v1_subj(subj_m, subj_id) ;
 
 					if subj_write_v[14] >= acc_criterion && subj_write_v[15] >= acc_criterion
+						push!(subj_t_v, subj_t) ;
+						push!(write_v, subj_write_v) ;
+					end	
+				elseif session == :probe_var_p_1v1 && session_to_analyse == :probe
+					if first_time
+						println(file_name)
+						first_time = false ;
+					end
+
+					subj_t , subj_write_v = get_probe_var_p_1v1_subj(subj_m, subj_id, probe_tone_1v1) ;
+
+					if subj_write_v[8] >= acc_criterion && subj_write_v[9] >= acc_criterion
 						push!(subj_t_v, subj_t) ;
 						push!(write_v, subj_write_v) ;
 					end				
@@ -187,126 +183,7 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 	return subj_t_v
 end
 
-function klimb_mi(path::String, session_to_analyse::Symbol, n_trials_in_the_past::Int64)
-
-	if isempty(path)
-		file_v = date_sort(filter(x->occursin(".csv", x), readdir())) ;
-	else
-		file_v = date_sort(filter(x->occursin(".csv", x), readdir(path))) ;
-	end
-	
-	mi_pr_v = Array{Float64,1}(undef, n_trials_in_the_past) ;
-	mi_pp_v = Array{Float64,1}(undef, n_trials_in_the_past) ;
-	mi_prp_v = Array{Float64,1}(undef, n_trials_in_the_past) ;
-	mi_ppr_v = Array{Float64,1}(undef, n_trials_in_the_past) ;
-	ci_pr_v = Array{Tuple{Float64, Float64},1}(undef, n_trials_in_the_past) ;
-	ci_pp_v = Array{Tuple{Float64, Float64},1}(undef, n_trials_in_the_past) ;
-	ci_prp_v = Array{Tuple{Float64, Float64},1}(undef, n_trials_in_the_past) ;
-	ci_ppr_v = Array{Tuple{Float64, Float64},1}(undef, n_trials_in_the_past) ;
-	mi_pt_v = Array{Float64,1}(undef, n_trials_in_the_past) ;
-	ci_pt_v = Array{Tuple{Float64, Float64},1}(undef, n_trials_in_the_past) ;
-
-	subj_t_v = Array{subj_t,1}() ;
-
-	for i = 1 : n_trials_in_the_past
-	for file_name in file_v
-		
-		df = read_csv_var_cols(string(path, file_name)) ;
-
-		write_v = Array{Array{Any,1},1}() ;
-		session = :not_interesting ;
-		dt_row_len = 0 ;
-		subj_id = "" ;
-
-		row_idx = 0 ;
-
-		while row_idx < DataFrames.nrow(df)
-
-			row_idx += 1 ;
-
-			if occursin("AC Comment", df[row_idx, 1])
-				if occursin("Pure", df[row_idx, 3])
-					session = :t4v1 ;
-					dt_row_len = 18 ;
-				elseif occursin("Discrimination", df[row_idx, 3])
-					session = :t1v1 ;
-					dt_row_len = 18 ;
-				elseif occursin("Route", df[row_idx, 3])
-					session = :pulses ;
-					dt_row_len = 22 ;
-				elseif occursin("Probe", df[row_idx, 3]) && occursin("midpoint", df[row_idx, 3])
-					session = :probe ;
-					dt_row_len = 20 ;
-				elseif occursin("Probe", df[row_idx, 3]) && occursin("1 vs 1", df[row_idx, 3])
-					session = :probe_1vs1 ;
-					dt_row_len = 22 ;
-				elseif occursin("Probe", df[row_idx, 3]) && occursin("multiple", df[row_idx, 3])
-					session = :probe_mult_amb ;
-					dt_row_len = 30 ;
-				elseif occursin("Probe", df[row_idx, 3]) && occursin("tones", df[row_idx, 3])
-					session = :probe_mult_amb_1v1 ;
-					dt_row_len = 13 ;
-				end
-			end
-
-			if occursin("Id", df[row_idx, 1])
-				subj_id = df[row_idx, 2] ;
-			end
-
-			if occursin("Ref", df[row_idx, 1]) && occursin("Outcome", df[row_idx, 2]) && session != :not_interesting
-				
-				subj_m = Array{Int64,1}() ;
-				row_idx += 1 ;
-
-				while !occursin("ENDDATA", df[row_idx, 1]) && !occursin("-1", df[row_idx, 1])
-
-					append!(subj_m, map(x->tryparse(Int64,x), df[row_idx, 1:dt_row_len])) ;
-					row_idx += 1 ;
-				end
-
-				subj_m = permutedims(reshape(subj_m, dt_row_len, :), (2,1)) ;
-
-				if session == :probe && session_to_analyse == :probe
-
-					subj_t , subj_write_v = get_probe_subj(subj_m, subj_id, 0) ;
-
-					if subj_write_v[8] >= acc_criterion && subj_write_v[9] >= acc_criterion
-						push!(subj_t_v, subj_t) ;
-					end
-				elseif	session == :probe_1vs1 && session_to_analyse == :probe
-					
-					subj_t , subj_write_v = get_probe_subj(subj_m, subj_id, 2) ;
-
-					if subj_write_v[8] >= acc_criterion && subj_write_v[9] >= acc_criterion
-						push!(subj_t_v, subj_t) ;
-					end
-				elseif (session == :t1v1 || session == :t4v1) && session_to_analyse == :train
-
-					subj_t , subj_write_v = get_train_subj(subj_m, subj_id, session, 0) ;
-					push!(subj_t_v, subj_t) ;
-				end
-			end
-		end
-	end
-
-	mi_v = mutual_info(subj_t_v, i) ;
-	mi_pr_v[i] = mi_v[1] ;
-	mi_pp_v[i] = mi_v[2] ;
-	mi_prp_v[i] = mi_v[3] ;
-	mi_ppr_v[i] = mi_v[4] ;
-	ci_pr_v[i] = mi_v[5] ;
-	ci_pp_v[i] = mi_v[6] ;
-	ci_prp_v[i] = mi_v[7] ;
-	ci_ppr_v[i] = mi_v[8] ;
-	mi_pt_v[i] = mi_v[9] ;
-	ci_pt_v[i] = mi_v[10] ;
-	
-	end
-	plot_mi(mi_pr_v, mi_pp_v, mi_prp_v, mi_ppr_v, ci_pr_v, ci_pp_v, ci_prp_v, ci_ppr_v, 
-		mi_pt_v, ci_pt_v, n_trials_in_the_past)
-end
-
-function get_probe_mult_amb_subj(subj_m::Array{Int64,2}, subj_id::String, col_offset::Int64)
+function get_probe_mult_p_subj(subj_m::Array{Int64,2}, subj_id::String, col_offset::Int64)
 
 	reward = zeros(Int64, size(subj_m,1)) ;
 	response = zeros(Int64, size(subj_m,1)) ;
@@ -322,61 +199,61 @@ function get_probe_mult_amb_subj(subj_m::Array{Int64,2}, subj_id::String, col_of
 	mask_incorr_cue2 = map((x,y) -> x == 3 && y != 0, subj_m[:,2], subj_m[:,15 + col_offset]) ;
 
 	# Name coding example :
-	# amb11 : amb1 (4.5 KHz) playing and route 1 (left) was responseed 
-	# amb12 : amb1 (4.5 KHz) playing and route 2 (right) was responseed 
+	# p11 : p1 (4.5 KHz) playing and route 1 (left) was responseed 
+	# p12 : p1 (4.5 KHz) playing and route 2 (right) was responseed 
 	# second number now represents what was responseed, NOT what was set as correct as in original get_probe_subj
 
-	mask_corr_amb11 = map((x,y,z) -> x != 0 && y != 0 && z == 0,
+	mask_corr_p11 = map((x,y,z) -> x != 0 && y != 0 && z == 0,
 				subj_m[:,19 + col_offset], subj_m[:,25 + col_offset], subj_m[:,29 + col_offset]) ;
-	mask_corr_amb21 = map((x,y,z) -> x != 0 && y != 0 && z == 0,
+	mask_corr_p21 = map((x,y,z) -> x != 0 && y != 0 && z == 0,
 				subj_m[:,17 + col_offset], subj_m[:,25 + col_offset], subj_m[:,29 + col_offset]) ;
-	mask_corr_amb31 = map((x,y,z) -> x != 0 && y != 0 && z == 0,
+	mask_corr_p31 = map((x,y,z) -> x != 0 && y != 0 && z == 0,
 				subj_m[:,21 + col_offset], subj_m[:,25 + col_offset], subj_m[:,29 + col_offset]) ;
-	mask_corr_amb41 = map((x,y,z) -> x != 0 && y != 0 && z == 0,
+	mask_corr_p41 = map((x,y,z) -> x != 0 && y != 0 && z == 0,
 				subj_m[:,23 + col_offset], subj_m[:,25 + col_offset], subj_m[:,29 + col_offset]) ;
 
-	mask_corr_amb12 = map((x,y,z) -> x != 0 && y != 0 && z == 0,
+	mask_corr_p12 = map((x,y,z) -> x != 0 && y != 0 && z == 0,
 				subj_m[:,19 + col_offset], subj_m[:,27 + col_offset], subj_m[:,29 + col_offset]) ;
-	mask_corr_amb22 = map((x,y,z) -> x != 0 && y != 0 && z == 0,
+	mask_corr_p22 = map((x,y,z) -> x != 0 && y != 0 && z == 0,
 				subj_m[:,17 + col_offset], subj_m[:,27 + col_offset], subj_m[:,29 + col_offset]) ;
-	mask_corr_amb32 = map((x,y,z) -> x != 0 && y != 0 && z == 0,
+	mask_corr_p32 = map((x,y,z) -> x != 0 && y != 0 && z == 0,
 				subj_m[:,21 + col_offset], subj_m[:,27 + col_offset], subj_m[:,29 + col_offset]) ;
-	mask_corr_amb42 = map((x,y,z) -> x != 0 && y != 0 && z == 0,
+	mask_corr_p42 = map((x,y,z) -> x != 0 && y != 0 && z == 0,
 				subj_m[:,23 + col_offset], subj_m[:,27 + col_offset], subj_m[:,29 + col_offset]) ;
 
-	mask_incorr_amb11 = map((x,y,z) -> x != 0 && y != 0 && z != 0,
+	mask_incorr_p11 = map((x,y,z) -> x != 0 && y != 0 && z != 0,
 				subj_m[:,19 + col_offset], subj_m[:,25 + col_offset], subj_m[:,29 + col_offset]) ;
-	mask_incorr_amb21 = map((x,y,z) -> x != 0 && y != 0 && z != 0,
+	mask_incorr_p21 = map((x,y,z) -> x != 0 && y != 0 && z != 0,
 				subj_m[:,17 + col_offset], subj_m[:,25 + col_offset], subj_m[:,29 + col_offset]) ;
-	mask_incorr_amb31 = map((x,y,z) -> x != 0 && y != 0 && z != 0,
+	mask_incorr_p31 = map((x,y,z) -> x != 0 && y != 0 && z != 0,
 				subj_m[:,21 + col_offset], subj_m[:,25 + col_offset], subj_m[:,29 + col_offset]) ;
-	mask_incorr_amb41 = map((x,y,z) -> x != 0 && y != 0 && z != 0,
+	mask_incorr_p41 = map((x,y,z) -> x != 0 && y != 0 && z != 0,
 				subj_m[:,23 + col_offset], subj_m[:,25 + col_offset], subj_m[:,29 + col_offset]) ;
 
-	mask_incorr_amb12 = map((x,y,z) -> x != 0 && y != 0 && z != 0,
+	mask_incorr_p12 = map((x,y,z) -> x != 0 && y != 0 && z != 0,
 				subj_m[:,19 + col_offset], subj_m[:,27 + col_offset], subj_m[:,29 + col_offset]) ;
-	mask_incorr_amb22 = map((x,y,z) -> x != 0 && y != 0 && z != 0,
+	mask_incorr_p22 = map((x,y,z) -> x != 0 && y != 0 && z != 0,
 				subj_m[:,17 + col_offset], subj_m[:,27 + col_offset], subj_m[:,29 + col_offset]) ;
-	mask_incorr_amb32 = map((x,y,z) -> x != 0 && y != 0 && z != 0,
+	mask_incorr_p32 = map((x,y,z) -> x != 0 && y != 0 && z != 0,
 				subj_m[:,21 + col_offset], subj_m[:,27 + col_offset], subj_m[:,29 + col_offset]) ;
-	mask_incorr_amb42 = map((x,y,z) -> x != 0 && y != 0 && z != 0,
+	mask_incorr_p42 = map((x,y,z) -> x != 0 && y != 0 && z != 0,
 				subj_m[:,23 + col_offset], subj_m[:,27 + col_offset], subj_m[:,29 + col_offset]) ;
 
 	mask_om_cue1 = map((x,y) -> x == 2 && y != 0, subj_m[:,2], subj_m[:, 13 + col_offset]) ;
 	mask_om_cue2 = map((x,y) -> x == 2 && y != 0, subj_m[:,2], subj_m[:, 15 + col_offset]) ;
 
-	mask_om_amb1 = map((x,y,z) -> x != 0 && y == 0 && z == 0,
+	mask_om_p1 = map((x,y,z) -> x != 0 && y == 0 && z == 0,
 				subj_m[:,19 + col_offset], subj_m[:,25 + col_offset], subj_m[:,27 + col_offset]) ;
-	mask_om_amb2 = map((x,y,z) -> x != 0 && y == 0 && z == 0,
+	mask_om_p2 = map((x,y,z) -> x != 0 && y == 0 && z == 0,
 				subj_m[:,17 + col_offset], subj_m[:,25 + col_offset], subj_m[:,27 + col_offset]) ;
-	mask_om_amb3 = map((x,y,z) -> x != 0 && y == 0 && z == 0,
+	mask_om_p3 = map((x,y,z) -> x != 0 && y == 0 && z == 0,
 				subj_m[:,21 + col_offset], subj_m[:,25 + col_offset], subj_m[:,27 + col_offset]) ;
-	mask_om_amb4 = map((x,y,z) -> x != 0 && y == 0 && z == 0,
+	mask_om_p4 = map((x,y,z) -> x != 0 && y == 0 && z == 0,
 				subj_m[:,23 + col_offset], subj_m[:,25 + col_offset], subj_m[:,27 + col_offset]) ;
 
 	mask_prem = map((x,y) -> x != 0 || y != 0, subj_m[:, 11 + col_offset], subj_m[:, 12 + col_offset]) ;
 
-	write_v = Array{Any,1}(undef, length(probe_mult_amb_header_v)) ;
+	write_v = Array{Any,1}(undef, length(probe_mult_p_header_v)) ;
 	write_v[1] = id_number ;
 
 	tone[map((x) -> x != 0 , subj_m[:,17+col_offset])] .= 4 ; # 4.75 KHz, coded tones as Int for simpler logical operations
@@ -394,12 +271,12 @@ function get_probe_mult_amb_subj(subj_m::Array{Int64,2}, subj_id::String, col_of
 									subj_m[map((x,y) -> x == 7 && y != 0, tone, subj_m[:, 23+col_offset]), 23+col_offset]) / 100.0 ;
 
 	if mod(id_number, 2) == 0 
-		response[mask_corr_cue1 .| mask_corr_amb11 .| mask_corr_amb21 .| mask_corr_amb31 .| mask_corr_amb41 .| 
-			mask_incorr_cue2 .| mask_incorr_amb11 .| mask_incorr_amb21 .| mask_incorr_amb31 .| mask_corr_amb41] .= 8 ;
-		response[mask_corr_cue2 .| mask_corr_amb12 .| mask_corr_amb22 .| mask_corr_amb32 .| mask_corr_amb42 .| 
-			mask_incorr_cue1 .| mask_incorr_amb12 .| mask_incorr_amb22 .| mask_incorr_amb32 .| mask_incorr_amb42] .= 2 ;
-		reward[mask_corr_cue1 .| mask_corr_amb11 .| mask_corr_amb21 .| mask_corr_amb31 .| mask_corr_amb41] .= 1 ;
-		reward[mask_corr_cue2 .| mask_corr_amb12 .| mask_corr_amb22 .| mask_corr_amb32 .| mask_corr_amb42] .= 4 ;
+		response[mask_corr_cue1 .| mask_corr_p11 .| mask_corr_p21 .| mask_corr_p31 .| mask_corr_p41 .| 
+			mask_incorr_cue2 .| mask_incorr_p11 .| mask_incorr_p21 .| mask_incorr_p31 .| mask_corr_p41] .= 8 ;
+		response[mask_corr_cue2 .| mask_corr_p12 .| mask_corr_p22 .| mask_corr_p32 .| mask_corr_p42 .| 
+			mask_incorr_cue1 .| mask_incorr_p12 .| mask_incorr_p22 .| mask_incorr_p32 .| mask_incorr_p42] .= 2 ;
+		reward[mask_corr_cue1 .| mask_corr_p11 .| mask_corr_p21 .| mask_corr_p31 .| mask_corr_p41] .= 1 ;
+		reward[mask_corr_cue2 .| mask_corr_p12 .| mask_corr_p22 .| mask_corr_p32 .| mask_corr_p42] .= 4 ;
 		tone[mask_corr_cue1 .| mask_incorr_cue1 .| mask_om_cue1] .= 8 ;
 		tone[mask_corr_cue2 .| mask_incorr_cue2 .| mask_om_cue2] .= 2 ;
 		rt[map(x -> x == 2, tone)] = (subj_m[map(x -> x == 2, tone), 16] - 
@@ -414,41 +291,41 @@ function get_probe_mult_amb_subj(subj_m::Array{Int64,2}, subj_id::String, col_of
 							mean(rt[mask_corr_cue1]), 
 							mean(rt[mask_incorr_cue2]), 
 							mean(rt[mask_incorr_cue1]),
-							mean(rt[mask_corr_amb12 .| mask_incorr_amb12]), 
-							mean(rt[mask_corr_amb22 .| mask_incorr_amb22]),
-							mean(rt[mask_corr_amb32 .| mask_incorr_amb32]),
-							mean(rt[mask_corr_amb42 .| mask_incorr_amb42]),
-							mean(rt[mask_corr_amb11 .| mask_incorr_amb11]), 
-							mean(rt[mask_corr_amb21 .| mask_incorr_amb21]),
-							mean(rt[mask_corr_amb31 .| mask_incorr_amb31]),
-							mean(rt[mask_corr_amb41 .| mask_incorr_amb41]),
+							mean(rt[mask_corr_p12 .| mask_incorr_p12]), 
+							mean(rt[mask_corr_p22 .| mask_incorr_p22]),
+							mean(rt[mask_corr_p32 .| mask_incorr_p32]),
+							mean(rt[mask_corr_p42 .| mask_incorr_p42]),
+							mean(rt[mask_corr_p11 .| mask_incorr_p11]), 
+							mean(rt[mask_corr_p21 .| mask_incorr_p21]),
+							mean(rt[mask_corr_p31 .| mask_incorr_p31]),
+							mean(rt[mask_corr_p41 .| mask_incorr_p41]),
 							100.0*count(x->x==true, mask_corr_cue2)/count(x -> x == true, mask_corr_cue2 .| mask_incorr_cue2), 
 							100.0*count(x->x==true, mask_corr_cue1)/count(x -> x == true, mask_corr_cue1 .| mask_incorr_cue1), 
 							100.0*count(x->x==true, mask_incorr_cue2)/count(x -> x == true, mask_corr_cue2 .| mask_incorr_cue2), 
 							100.0*count(x->x==true, mask_incorr_cue1)/count(x -> x == true, mask_corr_cue1 .| mask_incorr_cue1),
-							100.0*count(x -> x == true, mask_corr_amb12 .| mask_incorr_amb12)/count(x -> x == true, mask_corr_amb11 .| mask_incorr_amb11 .| mask_corr_amb12 .| mask_incorr_amb12), 
-							100.0*count(x -> x == true, mask_corr_amb22 .| mask_incorr_amb22)/count(x -> x == true, mask_corr_amb21 .| mask_incorr_amb21 .| mask_corr_amb22 .| mask_incorr_amb22), 
-							100.0*count(x -> x == true, mask_corr_amb32 .| mask_incorr_amb32)/count(x -> x == true, mask_corr_amb31 .| mask_incorr_amb31 .| mask_corr_amb32 .| mask_incorr_amb32), 
-							100.0*count(x -> x == true, mask_corr_amb42 .| mask_incorr_amb42)/count(x -> x == true, mask_corr_amb41 .| mask_incorr_amb41 .| mask_corr_amb42 .| mask_incorr_amb42), 
-							100.0*count(x -> x == true, mask_corr_amb11 .| mask_incorr_amb11)/count(x -> x == true, mask_corr_amb12 .| mask_incorr_amb12 .| mask_corr_amb11 .| mask_incorr_amb11), 
-							100.0*count(x -> x == true, mask_corr_amb21 .| mask_incorr_amb21)/count(x -> x == true, mask_corr_amb22 .| mask_incorr_amb22 .| mask_corr_amb21 .| mask_incorr_amb21), 
-							100.0*count(x -> x == true, mask_corr_amb31 .| mask_incorr_amb31)/count(x -> x == true, mask_corr_amb32 .| mask_incorr_amb32 .| mask_corr_amb31 .| mask_incorr_amb31), 
-							100.0*count(x -> x == true, mask_corr_amb41 .| mask_incorr_amb41)/count(x -> x == true, mask_corr_amb42 .| mask_incorr_amb42 .| mask_corr_amb41 .| mask_incorr_amb41), 
+							100.0*count(x -> x == true, mask_corr_p12 .| mask_incorr_p12)/count(x -> x == true, mask_corr_p11 .| mask_incorr_p11 .| mask_corr_p12 .| mask_incorr_p12), 
+							100.0*count(x -> x == true, mask_corr_p22 .| mask_incorr_p22)/count(x -> x == true, mask_corr_p21 .| mask_incorr_p21 .| mask_corr_p22 .| mask_incorr_p22), 
+							100.0*count(x -> x == true, mask_corr_p32 .| mask_incorr_p32)/count(x -> x == true, mask_corr_p31 .| mask_incorr_p31 .| mask_corr_p32 .| mask_incorr_p32), 
+							100.0*count(x -> x == true, mask_corr_p42 .| mask_incorr_p42)/count(x -> x == true, mask_corr_p41 .| mask_incorr_p41 .| mask_corr_p42 .| mask_incorr_p42), 
+							100.0*count(x -> x == true, mask_corr_p11 .| mask_incorr_p11)/count(x -> x == true, mask_corr_p12 .| mask_incorr_p12 .| mask_corr_p11 .| mask_incorr_p11), 
+							100.0*count(x -> x == true, mask_corr_p21 .| mask_incorr_p21)/count(x -> x == true, mask_corr_p22 .| mask_incorr_p22 .| mask_corr_p21 .| mask_incorr_p21), 
+							100.0*count(x -> x == true, mask_corr_p31 .| mask_incorr_p31)/count(x -> x == true, mask_corr_p32 .| mask_incorr_p32 .| mask_corr_p31 .| mask_incorr_p31), 
+							100.0*count(x -> x == true, mask_corr_p41 .| mask_incorr_p41)/count(x -> x == true, mask_corr_p42 .| mask_incorr_p42 .| mask_corr_p41 .| mask_incorr_p41), 
 							100.0*count(x->x==true, mask_om_cue2)/count(x->x==2, tone), 
 							100.0*count(x->x==true, mask_om_cue1)/count(x->x==8, tone), 
-							100.0*count(x -> x == true, mask_om_amb1)/count(x->x==3,tone), 
-							100.0*count(x -> x == true, mask_om_amb2)/count(x->x==4,tone), 
-							100.0*count(x -> x == true, mask_om_amb3)/count(x->x==6,tone), 
-							100.0*count(x -> x == true, mask_om_amb4)/count(x->x==7,tone), 
+							100.0*count(x -> x == true, mask_om_p1)/count(x->x==3,tone), 
+							100.0*count(x -> x == true, mask_om_p2)/count(x->x==4,tone), 
+							100.0*count(x -> x == true, mask_om_p3)/count(x->x==6,tone), 
+							100.0*count(x -> x == true, mask_om_p4)/count(x->x==7,tone), 
 							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1) ] ;
 
 	else
-		response[mask_corr_cue1 .| mask_corr_amb11 .| mask_corr_amb21 .| mask_corr_amb31 .| mask_corr_amb41 .| 
-			mask_incorr_cue2 .| mask_incorr_amb11 .| mask_incorr_amb21 .| mask_incorr_amb31 .| mask_corr_amb41] .= 2 ;
-		response[mask_corr_cue2 .| mask_corr_amb12 .| mask_corr_amb22 .| mask_corr_amb32 .| mask_corr_amb42 .| 
-			mask_incorr_cue1 .| mask_incorr_amb12 .| mask_incorr_amb22 .| mask_incorr_amb32 .| mask_incorr_amb42] .= 8 ;
-		reward[mask_corr_cue1 .| mask_corr_amb11 .| mask_corr_amb21 .| mask_corr_amb31 .| mask_corr_amb41] .= 4 ;
-		reward[mask_corr_cue2 .| mask_corr_amb12 .| mask_corr_amb22 .| mask_corr_amb32 .| mask_corr_amb42] .= 1 ;
+		response[mask_corr_cue1 .| mask_corr_p11 .| mask_corr_p21 .| mask_corr_p31 .| mask_corr_p41 .| 
+			mask_incorr_cue2 .| mask_incorr_p11 .| mask_incorr_p21 .| mask_incorr_p31 .| mask_corr_p41] .= 2 ;
+		response[mask_corr_cue2 .| mask_corr_p12 .| mask_corr_p22 .| mask_corr_p32 .| mask_corr_p42 .| 
+			mask_incorr_cue1 .| mask_incorr_p12 .| mask_incorr_p22 .| mask_incorr_p32 .| mask_incorr_p42] .= 8 ;
+		reward[mask_corr_cue1 .| mask_corr_p11 .| mask_corr_p21 .| mask_corr_p31 .| mask_corr_p41] .= 4 ;
+		reward[mask_corr_cue2 .| mask_corr_p12 .| mask_corr_p22 .| mask_corr_p32 .| mask_corr_p42] .= 1 ;
 		tone[mask_corr_cue1 .| mask_incorr_cue1 .| mask_om_cue1] .= 2 ;
 		tone[mask_corr_cue2 .| mask_incorr_cue2 .| mask_om_cue2] .= 8 ;
 		rt[map(x -> x == 2, tone)] = (subj_m[map(x -> x == 2, tone), 14] - 
@@ -463,36 +340,36 @@ function get_probe_mult_amb_subj(subj_m::Array{Int64,2}, subj_id::String, col_of
 							mean(rt[mask_corr_cue2]), 
 							mean(rt[mask_incorr_cue1]), 
 							mean(rt[mask_incorr_cue2]),
-							mean(rt[mask_corr_amb11 .| mask_incorr_amb11]), 
-							mean(rt[mask_corr_amb21 .| mask_incorr_amb21]),
-							mean(rt[mask_corr_amb31 .| mask_incorr_amb31]),
-							mean(rt[mask_corr_amb41 .| mask_incorr_amb41]),
-							mean(rt[mask_corr_amb12 .| mask_incorr_amb12]), 
-							mean(rt[mask_corr_amb22 .| mask_incorr_amb22]),
-							mean(rt[mask_corr_amb32 .| mask_incorr_amb32]),
-							mean(rt[mask_corr_amb42 .| mask_incorr_amb42]),
+							mean(rt[mask_corr_p11 .| mask_incorr_p11]), 
+							mean(rt[mask_corr_p21 .| mask_incorr_p21]),
+							mean(rt[mask_corr_p31 .| mask_incorr_p31]),
+							mean(rt[mask_corr_p41 .| mask_incorr_p41]),
+							mean(rt[mask_corr_p12 .| mask_incorr_p12]), 
+							mean(rt[mask_corr_p22 .| mask_incorr_p22]),
+							mean(rt[mask_corr_p32 .| mask_incorr_p32]),
+							mean(rt[mask_corr_p42 .| mask_incorr_p42]),
 							100.0*count(x->x==true, mask_corr_cue1)/count(x -> x == true, mask_corr_cue1 .| mask_incorr_cue1), 
 							100.0*count(x->x==true, mask_corr_cue2)/count(x -> x == true, mask_corr_cue2 .| mask_incorr_cue2), 
 							100.0*count(x->x==true, mask_incorr_cue1)/count(x -> x == true, mask_corr_cue1 .| mask_incorr_cue1), 
 							100.0*count(x->x==true, mask_incorr_cue2)/count(x -> x == true, mask_corr_cue2 .| mask_incorr_cue2),
-							100.0*count(x -> x == true, mask_corr_amb11 .| mask_incorr_amb11)/count(x -> x == true, mask_corr_amb11 .| mask_incorr_amb11 .| mask_corr_amb12 .| mask_incorr_amb12), 
-							100.0*count(x -> x == true, mask_corr_amb21 .| mask_incorr_amb21)/count(x -> x == true, mask_corr_amb21 .| mask_incorr_amb21 .| mask_corr_amb22 .| mask_incorr_amb22), 
-							100.0*count(x -> x == true, mask_corr_amb31 .| mask_incorr_amb31)/count(x -> x == true, mask_corr_amb31 .| mask_incorr_amb31 .| mask_corr_amb32 .| mask_incorr_amb32), 
-							100.0*count(x -> x == true, mask_corr_amb41 .| mask_incorr_amb41)/count(x -> x == true, mask_corr_amb41 .| mask_incorr_amb41 .| mask_corr_amb42 .| mask_incorr_amb42), 
-							100.0*count(x -> x == true, mask_corr_amb12 .| mask_incorr_amb12)/count(x -> x == true, mask_corr_amb12 .| mask_incorr_amb12 .| mask_corr_amb11 .| mask_incorr_amb11), 
-							100.0*count(x -> x == true, mask_corr_amb22 .| mask_incorr_amb22)/count(x -> x == true, mask_corr_amb22 .| mask_incorr_amb22 .| mask_corr_amb21 .| mask_incorr_amb21), 
-							100.0*count(x -> x == true, mask_corr_amb32 .| mask_incorr_amb32)/count(x -> x == true, mask_corr_amb32 .| mask_incorr_amb32 .| mask_corr_amb31 .| mask_incorr_amb31), 
-							100.0*count(x -> x == true, mask_corr_amb42 .| mask_incorr_amb42)/count(x -> x == true, mask_corr_amb42 .| mask_incorr_amb42 .| mask_corr_amb41 .| mask_incorr_amb41), 
+							100.0*count(x -> x == true, mask_corr_p11 .| mask_incorr_p11)/count(x -> x == true, mask_corr_p11 .| mask_incorr_p11 .| mask_corr_p12 .| mask_incorr_p12), 
+							100.0*count(x -> x == true, mask_corr_p21 .| mask_incorr_p21)/count(x -> x == true, mask_corr_p21 .| mask_incorr_p21 .| mask_corr_p22 .| mask_incorr_p22), 
+							100.0*count(x -> x == true, mask_corr_p31 .| mask_incorr_p31)/count(x -> x == true, mask_corr_p31 .| mask_incorr_p31 .| mask_corr_p32 .| mask_incorr_p32), 
+							100.0*count(x -> x == true, mask_corr_p41 .| mask_incorr_p41)/count(x -> x == true, mask_corr_p41 .| mask_incorr_p41 .| mask_corr_p42 .| mask_incorr_p42), 
+							100.0*count(x -> x == true, mask_corr_p12 .| mask_incorr_p12)/count(x -> x == true, mask_corr_p12 .| mask_incorr_p12 .| mask_corr_p11 .| mask_incorr_p11), 
+							100.0*count(x -> x == true, mask_corr_p22 .| mask_incorr_p22)/count(x -> x == true, mask_corr_p22 .| mask_incorr_p22 .| mask_corr_p21 .| mask_incorr_p21), 
+							100.0*count(x -> x == true, mask_corr_p32 .| mask_incorr_p32)/count(x -> x == true, mask_corr_p32 .| mask_incorr_p32 .| mask_corr_p31 .| mask_incorr_p31), 
+							100.0*count(x -> x == true, mask_corr_p42 .| mask_incorr_p42)/count(x -> x == true, mask_corr_p42 .| mask_incorr_p42 .| mask_corr_p41 .| mask_incorr_p41), 
 							100.0*count(x->x==true, mask_om_cue1)/count(x->x==2, tone), 
 							100.0*count(x->x==true, mask_om_cue2)/count(x->x==8, tone), 
-							100.0*count(x -> x == true, mask_om_amb1)/count(x->x==3,tone), 
-							100.0*count(x -> x == true, mask_om_amb2)/count(x->x==4,tone), 
-							100.0*count(x -> x == true, mask_om_amb3)/count(x->x==6,tone), 
-							100.0*count(x -> x == true, mask_om_amb4)/count(x->x==7,tone), 
+							100.0*count(x -> x == true, mask_om_p1)/count(x->x==3,tone), 
+							100.0*count(x -> x == true, mask_om_p2)/count(x->x==4,tone), 
+							100.0*count(x -> x == true, mask_om_p3)/count(x->x==6,tone), 
+							100.0*count(x -> x == true, mask_om_p4)/count(x->x==7,tone), 
 							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1) ] ;
 	end
 
-	rt[mask_om_cue1 .| mask_om_cue2 .| mask_om_amb1 .| mask_om_amb2] .= rt_max ;
+	rt[mask_om_cue1 .| mask_om_cue2 .| mask_om_p1 .| mask_om_p2] .= rt_max ;
 	mask_rt_crit = map(x -> x > rt_criterion, rt) ;
 
 	return subj_t(subj_id, 
@@ -514,21 +391,21 @@ function get_probe_subj(subj_m::Array{Int64,2}, subj_id::String, col_offset::Int
 	id_number_idx = findlast(isequal('_'), subj_id) ;
 	id_number = tryparse(Int64, subj_id[id_number_idx + 1 : end]) ;
 
-	# amb1 : ambiguous cue playing and route 1 lever (left) was set as correct
-	# amb2 : ambiguous cue playing and route 2 lever (right) was set as correct
+	# p1 : piguous cue playing and route 1 lever (left) was set as correct
+	# p2 : piguous cue playing and route 2 lever (right) was set as correct
 
 	mask_corr_cue1 = map((x,y) -> x == 0 && y != 0, subj_m[:,2], subj_m[:,13 + col_offset]) ;
 	mask_corr_cue2 = map((x,y) -> x == 0 && y != 0, subj_m[:,2], subj_m[:,15 + col_offset]) ;
 	mask_incorr_cue1 = map((x,y) -> x == 1 && y != 0, subj_m[:,2], subj_m[:,13 + col_offset]) ;
 	mask_incorr_cue2 = map((x,y) -> x == 3 && y != 0, subj_m[:,2], subj_m[:,15 + col_offset]) ;
-	mask_corr_amb1 = map((x,y) -> x == 0 && y != 0, subj_m[:,2], subj_m[:,17 + col_offset]) ;
-	mask_corr_amb2 = map((x,y) -> x == 0 && y != 0, subj_m[:,2], subj_m[:,19 + col_offset]) ;
-	mask_incorr_amb1 = map((x,y) -> x == 1 && y != 0, subj_m[:,2], subj_m[:,17 + col_offset]) ;
-	mask_incorr_amb2 = map((x,y) -> x == 3 && y != 0, subj_m[:,2], subj_m[:,19 + col_offset]) ;
+	mask_corr_p1 = map((x,y) -> x == 0 && y != 0, subj_m[:,2], subj_m[:,17 + col_offset]) ;
+	mask_corr_p2 = map((x,y) -> x == 0 && y != 0, subj_m[:,2], subj_m[:,19 + col_offset]) ;
+	mask_incorr_p1 = map((x,y) -> x == 1 && y != 0, subj_m[:,2], subj_m[:,17 + col_offset]) ;
+	mask_incorr_p2 = map((x,y) -> x == 3 && y != 0, subj_m[:,2], subj_m[:,19 + col_offset]) ;
 	mask_om_cue1 = map((x,y) -> x == 2 && y != 0, subj_m[:,2], subj_m[:, 13 + col_offset]) ;
 	mask_om_cue2 = map((x,y) -> x == 2 && y != 0, subj_m[:,2], subj_m[:, 15 + col_offset]) ;
-	mask_om_amb1 = map((x,y) -> x == 2 && y != 0, subj_m[:,2], subj_m[:, 17 + col_offset]) ;
-	mask_om_amb2 = map((x,y) -> x == 2 && y != 0, subj_m[:,2], subj_m[:, 19 + col_offset]) ;
+	mask_om_p1 = map((x,y) -> x == 2 && y != 0, subj_m[:,2], subj_m[:, 17 + col_offset]) ;
+	mask_om_p2 = map((x,y) -> x == 2 && y != 0, subj_m[:,2], subj_m[:, 19 + col_offset]) ;
 	mask_prem = map(x -> x == 4,  subj_m[:,2]) ;
 
 	write_v = Array{Any,1}(undef, length(probe_header_v)) ;
@@ -541,10 +418,10 @@ function get_probe_subj(subj_m::Array{Int64,2}, subj_id::String, col_offset::Int
 									subj_m[map((x,y) -> x == 5 && y != 0, tone, subj_m[:, 19+col_offset]), 19+col_offset]) / 100.0 ;
 
 	if mod(id_number, 2) == 0 
-		response[mask_corr_cue1 .| mask_corr_amb1 .| mask_incorr_cue2 .| mask_incorr_amb2] .= 8 ;
-		response[mask_corr_cue2 .| mask_corr_amb2 .| mask_incorr_cue1 .| mask_incorr_amb1] .= 2 ;
-		reward[mask_corr_cue1 .| mask_corr_amb1] .= 1 ;
-		reward[mask_corr_cue2 .| mask_corr_amb2] .= 4 ;
+		response[mask_corr_cue1 .| mask_corr_p1 .| mask_incorr_cue2 .| mask_incorr_p2] .= 8 ;
+		response[mask_corr_cue2 .| mask_corr_p2 .| mask_incorr_cue1 .| mask_incorr_p1] .= 2 ;
+		reward[mask_corr_cue1 .| mask_corr_p1] .= 1 ;
+		reward[mask_corr_cue2 .| mask_corr_p2] .= 4 ;
 		tone[mask_corr_cue1 .| mask_incorr_cue1 .| mask_om_cue1] .= 8 ;
 		tone[mask_corr_cue2 .| mask_incorr_cue2 .| mask_om_cue2] .= 2 ;
 		rt[map(x -> x == 2, tone)] = (subj_m[map(x -> x == 2, tone), 16] - 
@@ -559,28 +436,28 @@ function get_probe_subj(subj_m::Array{Int64,2}, subj_id::String, col_offset::Int
 							mean(rt[mask_corr_cue1]), 
 							mean(rt[mask_incorr_cue2]), 
 							mean(rt[mask_incorr_cue1]),
-							mean(rt[mask_corr_amb2 .| mask_incorr_amb1]), 
-							mean(rt[mask_corr_amb1 .| mask_incorr_amb2]), 
+							mean(rt[mask_corr_p2 .| mask_incorr_p1]), 
+							mean(rt[mask_corr_p1 .| mask_incorr_p2]), 
 							100.0*count(x->x==true, mask_corr_cue2)/count(x -> x == true, mask_corr_cue2 .| mask_incorr_cue2), 
 							100.0*count(x->x==true, mask_corr_cue1)/count(x -> x == true, mask_corr_cue1 .| mask_incorr_cue1), 
 							100.0*count(x->x==true, mask_incorr_cue2)/count(x -> x == true, mask_corr_cue2 .| mask_incorr_cue2), 
 							100.0*count(x->x==true, mask_incorr_cue1)/count(x -> x == true, mask_corr_cue1 .| mask_incorr_cue1),
-							100.0*count(x -> x == true, mask_corr_amb2 .| mask_incorr_amb1)/count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb1 .| mask_corr_amb2 .| mask_incorr_amb2), 
-							100.0*count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb2)/count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb1 .| mask_corr_amb2 .| mask_incorr_amb2), 
-							(count(x -> x == true, mask_corr_amb2 .| mask_incorr_amb1) - 
-							count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb2))/count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb1 .| mask_corr_amb2 .| mask_incorr_amb2),
+							100.0*count(x -> x == true, mask_corr_p2 .| mask_incorr_p1)/count(x -> x == true, mask_corr_p1 .| mask_incorr_p1 .| mask_corr_p2 .| mask_incorr_p2), 
+							100.0*count(x -> x == true, mask_corr_p1 .| mask_incorr_p2)/count(x -> x == true, mask_corr_p1 .| mask_incorr_p1 .| mask_corr_p2 .| mask_incorr_p2), 
+							(count(x -> x == true, mask_corr_p2 .| mask_incorr_p1) - 
+							count(x -> x == true, mask_corr_p1 .| mask_incorr_p2))/count(x -> x == true, mask_corr_p1 .| mask_incorr_p1 .| mask_corr_p2 .| mask_incorr_p2),
 							100.0*count(x->x==true, mask_om_cue2)/count(x->x==2, tone), 
 							100.0*count(x->x==true, mask_om_cue1)/count(x->x==8, tone), 
-							100.0*count(x -> x == true, mask_om_amb1 .| mask_om_amb2)/count(x->x==5,tone), 
+							100.0*count(x -> x == true, mask_om_p1 .| mask_om_p2)/count(x->x==5,tone), 
 							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1), 
-							mean([rt[mask_corr_amb1 .| mask_incorr_amb1] ; 
-								rt[mask_corr_amb2 .| mask_incorr_amb2]])] ;
+							mean([rt[mask_corr_p1 .| mask_incorr_p1] ; 
+								rt[mask_corr_p2 .| mask_incorr_p2]])] ;
 
 	else
-		response[mask_corr_cue1 .| mask_corr_amb1 .| mask_incorr_cue2 .| mask_incorr_amb2] .= 2 ;
-		response[mask_corr_cue2 .| mask_corr_amb2 .| mask_incorr_cue1 .| mask_incorr_amb1] .= 8 ;
-		reward[mask_corr_cue1 .| mask_corr_amb1] .= 4 ;
-		reward[mask_corr_cue2 .| mask_corr_amb2] .= 1 ;
+		response[mask_corr_cue1 .| mask_corr_p1 .| mask_incorr_cue2 .| mask_incorr_p2] .= 2 ;
+		response[mask_corr_cue2 .| mask_corr_p2 .| mask_incorr_cue1 .| mask_incorr_p1] .= 8 ;
+		reward[mask_corr_cue1 .| mask_corr_p1] .= 4 ;
+		reward[mask_corr_cue2 .| mask_corr_p2] .= 1 ;
 		tone[mask_corr_cue1 .| mask_incorr_cue1 .| mask_om_cue1] .= 2 ;
 		tone[mask_corr_cue2 .| mask_incorr_cue2 .| mask_om_cue2] .= 8 ;
 		rt[map(x -> x == 2, tone)] = (subj_m[map(x -> x == 2, tone), 14] - 
@@ -595,25 +472,25 @@ function get_probe_subj(subj_m::Array{Int64,2}, subj_id::String, col_offset::Int
 							mean(rt[mask_corr_cue2]), 
 							mean(rt[mask_incorr_cue1]), 
 							mean(rt[mask_incorr_cue2]),
-							mean(rt[mask_corr_amb1 .| mask_incorr_amb2]), 
-							mean(rt[mask_corr_amb2 .| mask_incorr_amb1]),  
+							mean(rt[mask_corr_p1 .| mask_incorr_p2]), 
+							mean(rt[mask_corr_p2 .| mask_incorr_p1]),  
 							100.0*count(x->x==true, mask_corr_cue1)/count(x -> x == true, mask_corr_cue1 .| mask_incorr_cue1), 
 							100.0*count(x->x==true, mask_corr_cue2)/count(x -> x == true, mask_corr_cue2 .| mask_incorr_cue2), 
 							100.0*count(x->x==true, mask_incorr_cue1)/count(x -> x == true, mask_corr_cue1 .| mask_incorr_cue1), 
 							100.0*count(x->x==true, mask_incorr_cue2)/count(x -> x == true, mask_corr_cue2 .| mask_incorr_cue2),
-							100.0*count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb2)/count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb1 .| mask_corr_amb2 .| mask_incorr_amb2), 
-							100.0*count(x -> x == true, mask_corr_amb2 .| mask_incorr_amb1)/count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb1 .| mask_corr_amb2 .| mask_incorr_amb2), 
-							(count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb2) - 
-							count(x -> x == true, mask_corr_amb2 .| mask_incorr_amb1))/count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb1 .| mask_corr_amb2 .| mask_incorr_amb2),
+							100.0*count(x -> x == true, mask_corr_p1 .| mask_incorr_p2)/count(x -> x == true, mask_corr_p1 .| mask_incorr_p1 .| mask_corr_p2 .| mask_incorr_p2), 
+							100.0*count(x -> x == true, mask_corr_p2 .| mask_incorr_p1)/count(x -> x == true, mask_corr_p1 .| mask_incorr_p1 .| mask_corr_p2 .| mask_incorr_p2), 
+							(count(x -> x == true, mask_corr_p1 .| mask_incorr_p2) - 
+							count(x -> x == true, mask_corr_p2 .| mask_incorr_p1))/count(x -> x == true, mask_corr_p1 .| mask_incorr_p1 .| mask_corr_p2 .| mask_incorr_p2),
 							100.0*count(x->x==true, mask_om_cue1)/count(x->x==2, tone), 
 							100.0*count(x->x==true, mask_om_cue2)/count(x->x==8, tone), 
-							100.0*count(x -> x == true, mask_om_amb1 .| mask_om_amb2)/count(x->x==5,tone), 
+							100.0*count(x -> x == true, mask_om_p1 .| mask_om_p2)/count(x->x==5,tone), 
 							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1), 
-							mean([rt[mask_corr_amb1 .| mask_incorr_amb1] ; 
-								rt[mask_corr_amb2 .| mask_incorr_amb2]])] ;
+							mean([rt[mask_corr_p1 .| mask_incorr_p1] ; 
+								rt[mask_corr_p2 .| mask_incorr_p2]])] ;
 	end
 
-	rt[mask_om_cue1 .| mask_om_cue2 .| mask_om_amb1 .| mask_om_amb2] .= rt_max ;
+	rt[mask_om_cue1 .| mask_om_cue2 .| mask_om_p1 .| mask_om_p2] .= rt_max ;
 	mask_rt_crit = map(x -> x > rt_criterion, rt) ;
 
 	return subj_t(subj_id, 
@@ -809,80 +686,449 @@ function get_train_pulses_subj(subj_m::Array{Int64,2}, subj_id::String, session:
 				0.0) , write_v
 end
 
-function date_sort(fv :: Array{String})
+function get_probe_mult_p_1v1_subj(subj_m::Array{Int64,2}, subj_id::String)
 
-	date_m = Array{Tuple{Int64, Int64, Int64, String},1}(undef, length(fv)) ;
+	reward = zeros(Int64, size(subj_m,1)) ;
+	response = zeros(Int64, size(subj_m,1)) ;
+	tone = zeros(Int64, size(subj_m,1)) ;
+	rt = zeros(Float64, size(subj_m,1)) ;
 
-	i = 1 ;
-	for date in fv
-		day = tryparse(Int64, date[1:2]) ;
+	id_number_idx = findlast(isequal('_'), subj_id) ;
+	id_number = tryparse(Int64, subj_id[id_number_idx + 1 : end]) ;
 
-		if occursin("Jan", date)
-			month = 1 ;
-		elseif occursin("Feb", date)
-			month = 2 ;
-		elseif occursin("Mar", date)
-			month = 3 ;
-		elseif occursin("Apr", date)
-			month = 4 ;
-		elseif occursin("May", date)
-			month = 5 ;
-		elseif occursin("Jun", date)
-			month = 6 ;
-		elseif occursin("Jul", date)
-			month = 7 ;
-		elseif occursin("Aug", date)
-			month = 8 ;
-		elseif occursin("Sep", date)
-			month = 9 ;
-		elseif occursin("Oct", date)
-			month = 10 ;
-		elseif occursin("Nov", date)
-			month = 11 ;
-		elseif occursin("Dec", date)
-			month = 12 ;
-		else
-			println("Invalid date")
-		end
+	mask_corr_2 = map((x,y) -> x == 0 && y == 1, subj_m[:,2], subj_m[:,3]) ;
+	mask_corr_8 = map((x,y) -> x == 0 && y == 0, subj_m[:,2], subj_m[:,3]) ;
+	mask_incorr_2 = map((x,y) -> (x == 1 || x == 3) && y == 1, subj_m[:,2], subj_m[:,3]) ;
+	mask_incorr_8 = map((x,y) -> (x == 1 || x == 3) && y == 0, subj_m[:,2], subj_m[:,3]) ;
 
-		year = tryparse(Int64, date[8:11]) ;
-		date_m[i] = (day, month, year, date) ;
+	# Name coding example :
+	# p11 : p1 (4 KHz) playing while route 1 (left) was the correct response
+	# p12 : p1 (4 KHz) playing while route 2 (right) was the correct response
 
-		i += 1 ;
+	mask_corr_p11 = map((x,y,z) -> x == 0 && y == 3 && z != 0, subj_m[:,2], subj_m[:,3], subj_m[:, 10]) ;
+	mask_corr_p21 = map((x,y,z) -> x == 0 && (y == 5 || y == 4) && z != 0, 
+									subj_m[:,2], subj_m[:,3], subj_m[:, 10]) ;
+	mask_corr_p31 = map((x,y,z) -> x == 0 && y == 2 && z != 0, subj_m[:,2], subj_m[:,3], subj_m[:, 10]) ;
+
+	mask_corr_p12 = map((x,y,z) -> x == 0 && y == 3 && z != 0, subj_m[:,2], subj_m[:,3], subj_m[:, 12]) ;
+	mask_corr_p22 = map((x,y,z) -> x == 0 && (y == 5 || y == 4) && z != 0, 
+									subj_m[:,2], subj_m[:,3], subj_m[:, 12]) ;
+	mask_corr_p32 = map((x,y,z) -> x == 0 && y == 2 && z != 0, subj_m[:,2], subj_m[:,3], subj_m[:, 12]) ;
+
+	mask_incorr_p11 = map((x,y,z) -> x == 1 && y == 3 && z != 0, subj_m[:,2], subj_m[:,3], subj_m[:, 10]) ;
+	mask_incorr_p21 = map((x,y,z) -> x == 1 && (y == 5 || y == 4) && z != 0, 
+									subj_m[:,2], subj_m[:,3], subj_m[:, 10]) ;
+	mask_incorr_p31 = map((x,y,z) -> x == 1 && y == 2 && z != 0, subj_m[:,2], subj_m[:,3], subj_m[:, 10]) ;
+
+	mask_incorr_p12 = map((x,y,z) -> x == 3 && y == 3 && z != 0, subj_m[:,2], subj_m[:,3], subj_m[:, 12]) ;
+	mask_incorr_p22 = map((x,y,z) -> x == 3 && (y == 5 || y == 4) && z != 0, 
+									subj_m[:,2], subj_m[:,3], subj_m[:, 12]) ;
+	mask_incorr_p32 = map((x,y,z) -> x == 3 && y == 2 && z != 0, subj_m[:,2], subj_m[:,3], subj_m[:, 12]) ;
+
+	mask_om_2 = map((x,y) -> x == 2 && y == 1, subj_m[:,2], subj_m[:,3]) ;
+	mask_om_8 = map((x,y) -> x == 2 && y == 0, subj_m[:,2], subj_m[:,3]) ;
+
+	mask_om_p1 = map((x,y) -> x == 2 && y == 3, subj_m[:,2], subj_m[:,3]) ;
+	mask_om_p2 = map((x,y) -> x == 2 && (y == 5 || y == 4), subj_m[:,2], subj_m[:,3]) ;
+	mask_om_p3 = map((x,y) -> x == 2 && y == 2, subj_m[:,2], subj_m[:,3]) ;
+
+	mask_prem = map(x -> x == 4, subj_m[:,2]) ;
+
+	tone[mask_corr_2 .| mask_incorr_2 .| mask_om_2] .= 2 ;
+	tone[mask_corr_8 .| mask_incorr_8 .| mask_om_8] .= 8 ;
+
+	tone[map((x,y) -> x == 3 && y == false, subj_m[:,3], mask_prem)] .= 4 ; # KHz
+	tone[map((x,y) -> (x == 5 || x == 4) && y == false, subj_m[:,3], mask_prem)] .= 5 ; # KHz
+	tone[map((x,y) -> x == 2 && y == false, subj_m[:,3], mask_prem)] .= 6 ; # KHz 
+
+	response[mask_corr_2 .| mask_incorr_8] .= 2 ;
+	response[mask_corr_8 .| mask_incorr_2] .= 8 ;
+
+	write_v = Array{Any,1}(undef, length(probe_mult_p_1v1_header_v)) ;
+	write_v[1] = id_number ;
+
+	if mod(id_number, 2) == 0 
+
+		response[mask_corr_p11 .| mask_corr_p21 .| mask_corr_p31 .|
+				mask_incorr_p12 .| mask_incorr_p22 .| mask_incorr_p32] .= 2 ;
+
+		response[mask_corr_p12 .| mask_corr_p22 .| mask_corr_p32 .|
+				mask_incorr_p11 .| mask_incorr_p21 .| mask_incorr_p31] .= 8 ;
+
+		response[map((x,y) -> x == true && y != 0, mask_prem, subj_m[:, 8])] .= 2 ;
+		response[map((x,y) -> x == true && y != 0, mask_prem, subj_m[:, 9])] .= 8 ;
+
+		rt[map(x -> x == 2, tone)] = (subj_m[map(x -> x == 2, tone), 11] -
+									subj_m[map(x -> x == 2, tone), 10]) / 100.0 ;
+
+		rt[map(x -> x == 8, tone)] = (subj_m[map(x -> x == 8, tone), 13] -
+									subj_m[map(x -> x == 8, tone), 12]) / 100.0 ;
+
+		rt[map(x -> x == 4, tone)] = (subj_m[map(x -> x == 4, tone), 11] -
+									subj_m[map(x -> x == 4, tone), 10]) / 100.0 ;
+
+		rt[map((x) -> x == 5, subj_m[:,3])] = (subj_m[map((x) -> x == 5, subj_m[:,3]), 11] -
+									subj_m[map((x) -> x == 5, subj_m[:,3]), 10]) / 100.0 ;
+		rt[map((x) -> x == 4, subj_m[:,3])] = (subj_m[map((x) -> x == 4, subj_m[:,3]), 13] -
+									subj_m[map((x) -> x == 4, subj_m[:,3]), 12]) / 100.0 ;
+
+		rt[map(x -> x == 6, tone)] = (subj_m[map(x -> x == 6, tone), 13] -
+									subj_m[map(x -> x == 6, tone), 12]) / 100.0 ;
+
+		write_v[2:end] = [mean(rt[mask_corr_2]), 
+							mean(rt[mask_corr_8]), 
+							mean(rt[mask_incorr_2]), 
+							mean(rt[mask_incorr_8]),
+							mean(rt[mask_corr_p11 .| mask_incorr_p12]), 
+							mean(rt[mask_corr_p21 .| mask_incorr_p22]),
+							mean(rt[mask_corr_p31 .| mask_incorr_p32]),
+							mean(rt[mask_corr_p12 .| mask_incorr_p11]), 
+							mean(rt[mask_corr_p22 .| mask_incorr_p21]),
+							mean(rt[mask_corr_p32 .| mask_incorr_p31]),
+							100.0*count(x->x==true, mask_corr_2)/count(x -> x == true, mask_corr_2 .| mask_incorr_2), 
+							100.0*count(x->x==true, mask_corr_8)/count(x -> x == true, mask_corr_8 .| mask_incorr_8), 
+							100.0*count(x->x==true, mask_incorr_2)/count(x -> x == true, mask_corr_2 .| mask_incorr_2), 
+							100.0*count(x->x==true, mask_incorr_8)/count(x -> x == true, mask_corr_8 .| mask_incorr_8),
+							100.0*count(x -> x == true, mask_corr_p11 .| mask_incorr_p12)/count(x -> x == true, mask_corr_p11 .| mask_incorr_p11 .| mask_corr_p12 .| mask_incorr_p12), 
+							100.0*count(x -> x == true, mask_corr_p21 .| mask_incorr_p22)/count(x -> x == true, mask_corr_p21 .| mask_incorr_p21 .| mask_corr_p22 .| mask_incorr_p22), 
+							100.0*count(x -> x == true, mask_corr_p31 .| mask_incorr_p32)/count(x -> x == true, mask_corr_p31 .| mask_incorr_p31 .| mask_corr_p32 .| mask_incorr_p32), 
+							100.0*count(x -> x == true, mask_corr_p12 .| mask_incorr_p11)/count(x -> x == true, mask_corr_p12 .| mask_incorr_p12 .| mask_corr_p11 .| mask_incorr_p11), 
+							100.0*count(x -> x == true, mask_corr_p22 .| mask_incorr_p21)/count(x -> x == true, mask_corr_p22 .| mask_incorr_p22 .| mask_corr_p21 .| mask_incorr_p21), 
+							100.0*count(x -> x == true, mask_corr_p32 .| mask_incorr_p31)/count(x -> x == true, mask_corr_p32 .| mask_incorr_p32 .| mask_corr_p31 .| mask_incorr_p31), 
+							100.0*count(x->x==true, mask_om_2)/count(x->x==2, tone), 
+							100.0*count(x->x==true, mask_om_8)/count(x->x==8, tone), 
+							100.0*count(x -> x == true, mask_om_p1)/count(x->x==3,tone), 
+							100.0*count(x -> x == true, mask_om_p2)/count(x->x==4,tone), 
+							100.0*count(x -> x == true, mask_om_p3)/count(x->x==6,tone), 
+							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1) ] ;
+
+	else
+		
+		response[mask_corr_p11 .| mask_corr_p21 .| mask_corr_p31 .|
+				mask_incorr_p12 .| mask_incorr_p22 .| mask_incorr_p32] .= 8 ;
+
+		response[mask_corr_p12 .| mask_corr_p22 .| mask_corr_p32 .|
+				mask_incorr_p11 .| mask_incorr_p21 .| mask_incorr_p31] .= 2 ;
+
+		response[map((x,y) -> x == true && y != 0, mask_prem, subj_m[:, 8])] .= 8 ;
+		response[map((x,y) -> x == true && y != 0, mask_prem, subj_m[:, 9])] .= 2 ;
+
+		rt[map(x -> x == 2, tone)] = (subj_m[map(x -> x == 2, tone), 13] -
+									subj_m[map(x -> x == 2, tone), 12]) / 100.0 ;
+
+		rt[map(x -> x == 8, tone)] = (subj_m[map(x -> x == 8, tone), 11] -
+									subj_m[map(x -> x == 8, tone), 10]) / 100.0 ;
+
+		rt[map(x -> x == 4, tone)] = (subj_m[map(x -> x == 4, tone), 13] -
+									subj_m[map(x -> x == 4, tone), 12]) / 100.0 ;
+
+		rt[map((x) -> x == 5, subj_m[:,3])] = (subj_m[map((x) -> x == 5, subj_m[:,3]), 13] -
+									subj_m[map((x) -> x == 5, subj_m[:,3]), 12]) / 100.0 ;
+		rt[map((x) -> x == 4, subj_m[:,3])] = (subj_m[map((x) -> x == 4, subj_m[:,3]), 11] -
+									subj_m[map((x) -> x == 4, subj_m[:,3]), 10]) / 100.0 ;
+
+		rt[map(x -> x == 6, tone)] = (subj_m[map(x -> x == 6, tone), 11] -
+									subj_m[map(x -> x == 6, tone), 10]) / 100.0 ;
+
+		write_v[2:end] = [mean(rt[mask_corr_2]), 
+							mean(rt[mask_corr_8]), 
+							mean(rt[mask_incorr_2]), 
+							mean(rt[mask_incorr_8]),
+							mean(rt[mask_corr_p12 .| mask_incorr_p11]), 
+							mean(rt[mask_corr_p22 .| mask_incorr_p21]),
+							mean(rt[mask_corr_p32 .| mask_incorr_p31]),
+							mean(rt[mask_corr_p11 .| mask_incorr_p12]), 
+							mean(rt[mask_corr_p21 .| mask_incorr_p22]),
+							mean(rt[mask_corr_p31 .| mask_incorr_p32]),
+							100.0*count(x->x==true, mask_corr_2)/count(x -> x == true, mask_corr_2 .| mask_incorr_2), 
+							100.0*count(x->x==true, mask_corr_8)/count(x -> x == true, mask_corr_8 .| mask_incorr_8), 
+							100.0*count(x->x==true, mask_incorr_2)/count(x -> x == true, mask_corr_2 .| mask_incorr_2), 
+							100.0*count(x->x==true, mask_incorr_8)/count(x -> x == true, mask_corr_8 .| mask_incorr_8),
+							100.0*count(x -> x == true, mask_corr_p12 .| mask_incorr_p11)/count(x -> x == true, mask_corr_p11 .| mask_incorr_p11 .| mask_corr_p12 .| mask_incorr_p12), 
+							100.0*count(x -> x == true, mask_corr_p22 .| mask_incorr_p21)/count(x -> x == true, mask_corr_p21 .| mask_incorr_p21 .| mask_corr_p22 .| mask_incorr_p22), 
+							100.0*count(x -> x == true, mask_corr_p32 .| mask_incorr_p31)/count(x -> x == true, mask_corr_p31 .| mask_incorr_p31 .| mask_corr_p32 .| mask_incorr_p32), 
+							100.0*count(x -> x == true, mask_corr_p11 .| mask_incorr_p12)/count(x -> x == true, mask_corr_p12 .| mask_incorr_p12 .| mask_corr_p11 .| mask_incorr_p11), 
+							100.0*count(x -> x == true, mask_corr_p21 .| mask_incorr_p22)/count(x -> x == true, mask_corr_p22 .| mask_incorr_p22 .| mask_corr_p21 .| mask_incorr_p21), 
+							100.0*count(x -> x == true, mask_corr_p31 .| mask_incorr_p32)/count(x -> x == true, mask_corr_p32 .| mask_incorr_p32 .| mask_corr_p31 .| mask_incorr_p31), 
+							100.0*count(x->x==true, mask_om_2)/count(x->x==2, tone), 
+							100.0*count(x->x==true, mask_om_8)/count(x->x==8, tone), 
+							100.0*count(x -> x == true, mask_om_p1)/count(x->x==3,tone), 
+							100.0*count(x -> x == true, mask_om_p2)/count(x->x==4,tone), 
+							100.0*count(x -> x == true, mask_om_p3)/count(x->x==6,tone), 
+							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1) ] ;
 	end
 
-	sort!(date_m, by = x->(x[3],x[2],x[1],x[4]))
-	sorted_fv = Array{String, 1}(undef, length(fv)) ;
+	rt[mask_om_2 .| mask_om_8 .| mask_om_p1 .| mask_om_p2 .| mask_om_p3] .= rt_max ;
+	mask_rt_crit = map(x -> x > rt_criterion, rt) ;
 
-	for i = 1 : length(fv)
-		sorted_fv[i] = date_m[i][4] ;
-	end
-	return sorted_fv
+	return subj_t(subj_id, 
+				response[mask_rt_crit], 
+				reward[mask_rt_crit], 
+				tone[mask_rt_crit], 
+				rt[mask_rt_crit], 
+				0.0) , write_v
 end
 
-function write_xlsx(row_write_v::Array{Array{Any,1},1}, session::Symbol, in_file::String, in_path::String)
+function get_probe_var_p_1v1_subj(subj_m::Array{Int64,2}, subj_id::String, p::Int64)
 
-	xlsx_file = string(in_path, in_file[1:11],".xlsx") ;
+	reward = zeros(Int64, size(subj_m,1)) ;
+	response = zeros(Int64, size(subj_m,1)) ;
+	tone = zeros(Int64, size(subj_m,1)) ;
+	rt = zeros(Float64, size(subj_m,1)) ;
 
-	if session == :probe || session == :probe_1vs1
-		header_v = probe_header_v ;
-	elseif session == :probe_mult_amb 
-		header_v = probe_mult_amb_header_v ;
-	elseif session == :probe_mult_amb_1v1 
-		header_v = probe_mult_amb_1v1_header_v ;
+	id_number_idx = findlast(isequal('_'), subj_id) ;
+	id_number = tryparse(Int64, subj_id[id_number_idx + 1 : end]) ;
+
+	mask_corr_2 = map((x,y) -> x == 0 && y == 1, subj_m[:,2], subj_m[:,3]) ;
+	mask_corr_8 = map((x,y) -> x == 0 && y == 0, subj_m[:,2], subj_m[:,3]) ;
+	mask_incorr_2 = map((x,y) -> (x == 1 || x == 3) && y == 1, subj_m[:,2], subj_m[:,3]) ;
+	mask_incorr_8 = map((x,y) -> (x == 1 || x == 3) && y == 0, subj_m[:,2], subj_m[:,3]) ;
+
+	# Name coding example :
+	# p1 : p (5/5.5/6 KHz) playing while route 1 (left) was the correct response
+	# p2 : p (5/5.5/6 KHz) playing while route 2 (right) was the correct response
+
+	mask_corr_p1 = map((x,y,z) -> x == 0 && (y == 2 || y == 3) && z != 0, 
+									subj_m[:,2], subj_m[:,3], subj_m[:, 13]) ;
+
+	mask_corr_p2 = map((x,y,z) -> x == 0 && (y == 2 || y == 3) && z != 0, 
+									subj_m[:,2], subj_m[:,3], subj_m[:, 15]) ;
+
+	mask_incorr_p1 = map((x,y,z) -> x == 1 && (y == 2 || y == 3) && z != 0, 
+									subj_m[:,2], subj_m[:,3], subj_m[:, 13]) ;
+
+	mask_incorr_p2 = map((x,y,z) -> x == 3 && (y == 2 || y == 3) && z != 0, 
+									subj_m[:,2], subj_m[:,3], subj_m[:, 15]) ;
+
+	mask_om_2 = map((x,y) -> x == 2 && y == 1, subj_m[:,2], subj_m[:,3]) ;
+	mask_om_8 = map((x,y) -> x == 2 && y == 0, subj_m[:,2], subj_m[:,3]) ;
+
+	mask_om_p = map((x,y) -> x == 2 && (y == 2 || y == 3), subj_m[:,2], subj_m[:,3]) ;
+
+	mask_prem = map(x -> x == 4, subj_m[:,2]) ;
+
+	tone[mask_corr_2 .| mask_incorr_2 .| mask_om_2] .= 2 ;
+	tone[mask_corr_8 .| mask_incorr_8 .| mask_om_8] .= 8 ;
+
+	tone[map((x,y) -> (x == 2 || x == 3) && y == false, subj_m[:,3], mask_prem)] .= p ; # KHz
+
+	response[mask_corr_2 .| mask_incorr_8] .= 2 ;
+	response[mask_corr_8 .| mask_incorr_2] .= 8 ;
+
+	write_v = Array{Any,1}(undef, length(probe_header_v)) ;
+	write_v[1] = id_number ;
+
+	if id_number in [1, 2, 7, 8, 9, 10, 15, 16, 17, 18]
+
+		response[mask_corr_p1 .| mask_incorr_p2 ] .= 2 ;
+
+		response[mask_corr_p2 .| mask_incorr_p1] .= 8 ;
+
+		response[map((x,y) -> x == true && y != 0, mask_prem, subj_m[:, 11])] .= 2 ;
+		response[map((x,y) -> x == true && y != 0, mask_prem, subj_m[:, 12])] .= 8 ;
+
+		rt[map(x -> x == 2, tone)] = (subj_m[map(x -> x == 2, tone), 14] -
+									subj_m[map(x -> x == 2, tone), 13]) / 100.0 ;
+
+		rt[map(x -> x == 8, tone)] = (subj_m[map(x -> x == 8, tone), 16] -
+									subj_m[map(x -> x == 8, tone), 15]) / 100.0 ;
+
+		rt[map((x) -> x == 3, subj_m[:,3])] = (subj_m[map((x) -> x == 3, subj_m[:,3]), 14] -
+									subj_m[map((x) -> x == 3, subj_m[:,3]), 13]) / 100.0 ;
+		rt[map((x) -> x == 2, subj_m[:,3])] = (subj_m[map((x) -> x == 2, subj_m[:,3]), 16] -
+									subj_m[map((x) -> x == 2, subj_m[:,3]), 15]) / 100.0 ;
+
+		write_v[2:end] = [mean(rt[mask_corr_2]), 
+							mean(rt[mask_corr_8]), 
+							mean(rt[mask_incorr_2]), 
+							mean(rt[mask_incorr_8]),
+							mean(rt[mask_corr_p1 .| mask_incorr_p2]), 
+							mean(rt[mask_corr_p2 .| mask_incorr_p1]), 
+							100.0*count(x->x==true, mask_corr_2)/count(x -> x == true, mask_corr_2 .| mask_incorr_2), 
+							100.0*count(x->x==true, mask_corr_8)/count(x -> x == true, mask_corr_8 .| mask_incorr_8), 
+							100.0*count(x->x==true, mask_incorr_2)/count(x -> x == true, mask_corr_2 .| mask_incorr_2), 
+							100.0*count(x->x==true, mask_incorr_8)/count(x -> x == true, mask_corr_8 .| mask_incorr_8),
+							100.0*count(x -> x == true, mask_corr_p1 .| mask_incorr_p2)/count(x -> x == true, mask_corr_p1 .| mask_incorr_p1 .| mask_corr_p2 .| mask_incorr_p2), 
+							100.0*count(x -> x == true, mask_corr_p2 .| mask_incorr_p1)/count(x -> x == true, mask_corr_p2 .| mask_incorr_p2 .| mask_corr_p1 .| mask_incorr_p1), 
+							(count(x -> x == true, mask_corr_p1 .| mask_incorr_p2) - 
+							count(x -> x == true, mask_corr_p2 .| mask_incorr_p1))/count(x -> x == true, mask_corr_p1 .| mask_incorr_p1 .| mask_corr_p2 .| mask_incorr_p2),
+							100.0*count(x->x==true, mask_om_2)/count(x->x==2, tone), 
+							100.0*count(x->x==true, mask_om_8)/count(x->x==8, tone), 
+							100.0*count(x -> x == true, mask_om_p)/count(x->x==p,tone), 
+							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1),
+							mean([rt[mask_corr_p1 .| mask_incorr_p1] ; 
+								rt[mask_corr_p2 .| mask_incorr_p2]]) ] ;
+
 	else
-		header_v = train_header_v ;
+		
+		response[mask_corr_p1 .| mask_incorr_p2 ] .= 8 ;
+
+		response[mask_corr_p2 .| mask_incorr_p1] .= 2 ;
+
+		response[map((x,y) -> x == true && y != 0, mask_prem, subj_m[:, 11])] .= 8 ;
+		response[map((x,y) -> x == true && y != 0, mask_prem, subj_m[:, 12])] .= 2 ;
+
+		rt[map(x -> x == 2, tone)] = (subj_m[map(x -> x == 2, tone), 16] -
+									subj_m[map(x -> x == 2, tone), 15]) / 100.0 ;
+
+		rt[map(x -> x == 8, tone)] = (subj_m[map(x -> x == 8, tone), 14] -
+									subj_m[map(x -> x == 8, tone), 13]) / 100.0 ;
+
+		rt[map((x) -> x == 3, subj_m[:,3])] = (subj_m[map((x) -> x == 3, subj_m[:,3]), 16] -
+									subj_m[map((x) -> x == 3, subj_m[:,3]), 15]) / 100.0 ;
+		rt[map((x) -> x == 2, subj_m[:,3])] = (subj_m[map((x) -> x == 2, subj_m[:,3]), 14] -
+									subj_m[map((x) -> x == 2, subj_m[:,3]), 13]) / 100.0 ;
+
+		write_v[2:end] = [mean(rt[mask_corr_2]), 
+							mean(rt[mask_corr_8]), 
+							mean(rt[mask_incorr_2]), 
+							mean(rt[mask_incorr_8]),
+							mean(rt[mask_corr_p2 .| mask_incorr_p1]), 
+							mean(rt[mask_corr_p1 .| mask_incorr_p2]), 
+							100.0*count(x->x==true, mask_corr_2)/count(x -> x == true, mask_corr_2 .| mask_incorr_2), 
+							100.0*count(x->x==true, mask_corr_8)/count(x -> x == true, mask_corr_8 .| mask_incorr_8), 
+							100.0*count(x->x==true, mask_incorr_2)/count(x -> x == true, mask_corr_2 .| mask_incorr_2), 
+							100.0*count(x->x==true, mask_incorr_8)/count(x -> x == true, mask_corr_8 .| mask_incorr_8),
+							100.0*count(x -> x == true, mask_corr_p2 .| mask_incorr_p1)/count(x -> x == true, mask_corr_p1 .| mask_incorr_p1 .| mask_corr_p2 .| mask_incorr_p2), 
+							100.0*count(x -> x == true, mask_corr_p1 .| mask_incorr_p2)/count(x -> x == true, mask_corr_p2 .| mask_incorr_p2 .| mask_corr_p1 .| mask_incorr_p1),
+							(count(x -> x == true, mask_corr_p2 .| mask_incorr_p1) - 
+							count(x -> x == true, mask_corr_p1 .| mask_incorr_p2))/count(x -> x == true, mask_corr_p1 .| mask_incorr_p1 .| mask_corr_p2 .| mask_incorr_p2), 
+							100.0*count(x->x==true, mask_om_2)/count(x->x==2, tone), 
+							100.0*count(x->x==true, mask_om_8)/count(x->x==8, tone), 
+							100.0*count(x -> x == true, mask_om_p)/count(x->x==p,tone), 
+							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1),
+							mean([rt[mask_corr_p1 .| mask_incorr_p1] ; 
+								rt[mask_corr_p2 .| mask_incorr_p2]]) ] ;
 	end
 
-	column_write_v = Array{Array{Any,1},1}() ;
+	rt[mask_om_2 .| mask_om_8 .| mask_om_p] .= rt_max ;
+	mask_rt_crit = map(x -> x > rt_criterion, rt) ;
 
-	for i = 1 : length(row_write_v[1])
-		push!(column_write_v, map(x -> x[i], row_write_v)) ;
-	end 
+	return subj_t(subj_id, 
+				response[mask_rt_crit], 
+				reward[mask_rt_crit], 
+				tone[mask_rt_crit], 
+				rt[mask_rt_crit], 
+				0.0) , write_v
+end
 
-	df = DataFrames.DataFrame(Dict(map((x,y) -> x=>y, header_v, column_write_v))) ;
+function klimb_mi(path::String, session_to_analyse::Symbol, n_trials_in_the_past::Int64)
+
+	if isempty(path)
+		file_v = date_sort(filter(x->occursin(".csv", x), readdir())) ;
+	else
+		file_v = date_sort(filter(x->occursin(".csv", x), readdir(path))) ;
+	end
 	
-	XLSX.writetable(xlsx_file, DataFrames.eachcol(df), DataFrames.names(df), overwrite = true) ;
+	mi_pr_v = Array{Float64,1}(undef, n_trials_in_the_past) ;
+	mi_pp_v = Array{Float64,1}(undef, n_trials_in_the_past) ;
+	mi_prp_v = Array{Float64,1}(undef, n_trials_in_the_past) ;
+	mi_ppr_v = Array{Float64,1}(undef, n_trials_in_the_past) ;
+	ci_pr_v = Array{Tuple{Float64, Float64},1}(undef, n_trials_in_the_past) ;
+	ci_pp_v = Array{Tuple{Float64, Float64},1}(undef, n_trials_in_the_past) ;
+	ci_prp_v = Array{Tuple{Float64, Float64},1}(undef, n_trials_in_the_past) ;
+	ci_ppr_v = Array{Tuple{Float64, Float64},1}(undef, n_trials_in_the_past) ;
+	mi_pt_v = Array{Float64,1}(undef, n_trials_in_the_past) ;
+	ci_pt_v = Array{Tuple{Float64, Float64},1}(undef, n_trials_in_the_past) ;
+
+	subj_t_v = Array{subj_t,1}() ;
+
+	for i = 1 : n_trials_in_the_past
+	for file_name in file_v
+		
+		df = read_csv_var_cols(string(path, file_name)) ;
+
+		write_v = Array{Array{Any,1},1}() ;
+		session = :not_interesting ;
+		dt_row_len = 0 ;
+		subj_id = "" ;
+
+		row_idx = 0 ;
+
+		while row_idx < DataFrames.nrow(df)
+
+			row_idx += 1 ;
+
+			if occursin("AC Comment", df[row_idx, 1])
+				if occursin("Pure", df[row_idx, 3])
+					session = :t4v1 ;
+					dt_row_len = 18 ;
+				elseif occursin("Discrimination", df[row_idx, 3])
+					session = :t1v1 ;
+					dt_row_len = 18 ;
+				elseif occursin("Route", df[row_idx, 3])
+					session = :pulses ;
+					dt_row_len = 22 ;
+				elseif occursin("Probe", df[row_idx, 3]) && occursin("midpoint", df[row_idx, 3])
+					session = :probe ;
+					dt_row_len = 20 ;
+				elseif occursin("Probe", df[row_idx, 3]) && occursin("1 vs 1", df[row_idx, 3])
+					session = :probe_1v1 ;
+					dt_row_len = 22 ;
+				elseif occursin("Probe", df[row_idx, 3]) && occursin("multiple", df[row_idx, 3])
+					session = :probe_mult_p ;
+					dt_row_len = 30 ;
+				elseif occursin("Probe", df[row_idx, 3]) && occursin("tones", df[row_idx, 3])
+					session = :probe_mult_p_1v1 ;
+					dt_row_len = 13 ;
+				end
+			end
+
+			if occursin("Id", df[row_idx, 1])
+				subj_id = df[row_idx, 2] ;
+			end
+
+			if occursin("Ref", df[row_idx, 1]) && occursin("Outcome", df[row_idx, 2]) && session != :not_interesting
+				
+				subj_m = Array{Int64,1}() ;
+				row_idx += 1 ;
+
+				while !occursin("ENDDATA", df[row_idx, 1]) && !occursin("-1", df[row_idx, 1])
+
+					append!(subj_m, map(x->tryparse(Int64,x), df[row_idx, 1:dt_row_len])) ;
+					row_idx += 1 ;
+				end
+
+				subj_m = permutedims(reshape(subj_m, dt_row_len, :), (2,1)) ;
+
+				if session == :probe && session_to_analyse == :probe
+
+					subj_t , subj_write_v = get_probe_subj(subj_m, subj_id, 0) ;
+
+					if subj_write_v[8] >= acc_criterion && subj_write_v[9] >= acc_criterion
+						push!(subj_t_v, subj_t) ;
+					end
+				elseif	session == :probe_1v1 && session_to_analyse == :probe
+					
+					subj_t , subj_write_v = get_probe_subj(subj_m, subj_id, 2) ;
+
+					if subj_write_v[8] >= acc_criterion && subj_write_v[9] >= acc_criterion
+						push!(subj_t_v, subj_t) ;
+					end
+				elseif (session == :t1v1 || session == :t4v1) && session_to_analyse == :train
+
+					subj_t , subj_write_v = get_train_subj(subj_m, subj_id, session, 0) ;
+					push!(subj_t_v, subj_t) ;
+				end
+			end
+		end
+	end
+
+	mi_v = mutual_info(subj_t_v, i) ;
+	mi_pr_v[i] = mi_v[1] ;
+	mi_pp_v[i] = mi_v[2] ;
+	mi_prp_v[i] = mi_v[3] ;
+	mi_ppr_v[i] = mi_v[4] ;
+	ci_pr_v[i] = mi_v[5] ;
+	ci_pp_v[i] = mi_v[6] ;
+	ci_prp_v[i] = mi_v[7] ;
+	ci_ppr_v[i] = mi_v[8] ;
+	mi_pt_v[i] = mi_v[9] ;
+	ci_pt_v[i] = mi_v[10] ;
+	
+	end
+	plot_mi(mi_pr_v, mi_pp_v, mi_prp_v, mi_ppr_v, ci_pr_v, ci_pp_v, ci_prp_v, ci_ppr_v, 
+		mi_pt_v, ci_pt_v, n_trials_in_the_past)
 end
 
 function old_klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
@@ -1056,19 +1302,19 @@ function get_old_probe_subj(subj_m::Array{Int64,2}, subj_id::String, col_offset:
 		mask_corr_cue2 = map((x,y,z) -> x == 0 && y != 0 && z == 0, subj_m[:,2], subj_m[:,15], subj_m[:,3]) ;
 		mask_incorr_cue1 = map((x,y,z) -> x == 1 && y != 0 && z == 1, subj_m[:,2], subj_m[:,13], subj_m[:,3]) ;
 		mask_incorr_cue2 = map((x,y,z) -> x == 3 && y != 0 && z == 0, subj_m[:,2], subj_m[:,15], subj_m[:,3]) ;
-		mask_corr_amb1 = map((x,y,z) -> x == 0 && y != 0 && z == 3, subj_m[:,2], subj_m[:,13], subj_m[:,3]) ;
-		mask_corr_amb2 = map((x,y,z) -> x == 0 && y != 0 && z == 2, subj_m[:,2], subj_m[:,15], subj_m[:,3]) ;
-		mask_incorr_amb1 = map((x,y,z) -> x == 1 && y != 0 && z == 3, subj_m[:,2], subj_m[:,13], subj_m[:,3]) ;
-		mask_incorr_amb2 = map((x,y,z) -> x == 3 && y != 0 && z == 2, subj_m[:,2], subj_m[:,15], subj_m[:,3]) ;
+		mask_corr_p1 = map((x,y,z) -> x == 0 && y != 0 && z == 3, subj_m[:,2], subj_m[:,13], subj_m[:,3]) ;
+		mask_corr_p2 = map((x,y,z) -> x == 0 && y != 0 && z == 2, subj_m[:,2], subj_m[:,15], subj_m[:,3]) ;
+		mask_incorr_p1 = map((x,y,z) -> x == 1 && y != 0 && z == 3, subj_m[:,2], subj_m[:,13], subj_m[:,3]) ;
+		mask_incorr_p2 = map((x,y,z) -> x == 3 && y != 0 && z == 2, subj_m[:,2], subj_m[:,15], subj_m[:,3]) ;
 		mask_om_cue1 = map((x,y,z) -> x == 2 && y != 0 && z == 1, subj_m[:,2], subj_m[:,13], subj_m[:,3]) ;
 		mask_om_cue2 = map((x,y,z) -> x == 2 && y != 0 && z == 0, subj_m[:,2], subj_m[:,15], subj_m[:,3]) ;
-		mask_om_amb1 = map((x,y,z) -> x == 2 && y != 0 && z == 3, subj_m[:,2], subj_m[:,13], subj_m[:,3]) ;
-		mask_om_amb2 = map((x,y,z) -> x == 2 && y != 0 && z == 2, subj_m[:,2], subj_m[:,15], subj_m[:,3]) ;
+		mask_om_p1 = map((x,y,z) -> x == 2 && y != 0 && z == 3, subj_m[:,2], subj_m[:,13], subj_m[:,3]) ;
+		mask_om_p2 = map((x,y,z) -> x == 2 && y != 0 && z == 2, subj_m[:,2], subj_m[:,15], subj_m[:,3]) ;
 
-		response[mask_corr_cue1 .| mask_corr_amb1 .| mask_incorr_cue2 .| mask_incorr_amb2] .= 2 ;
-		response[mask_corr_cue2 .| mask_corr_amb2 .| mask_incorr_cue1 .| mask_incorr_amb1] .= 8 ;
-		reward[mask_corr_cue1 .| mask_corr_amb1] .= 4 ;
-		reward[mask_corr_cue2 .| mask_corr_amb2] .= 1 ;
+		response[mask_corr_cue1 .| mask_corr_p1 .| mask_incorr_cue2 .| mask_incorr_p2] .= 2 ;
+		response[mask_corr_cue2 .| mask_corr_p2 .| mask_incorr_cue1 .| mask_incorr_p1] .= 8 ;
+		reward[mask_corr_cue1 .| mask_corr_p1] .= 4 ;
+		reward[mask_corr_cue2 .| mask_corr_p2] .= 1 ;
 		tone[mask_corr_cue1 .| mask_incorr_cue1 .| mask_om_cue1] .= 2 ;
 		tone[mask_corr_cue2 .| mask_incorr_cue2 .| mask_om_cue2] .= 8 ;
 		rt[map(x -> x == 2, tone)] = (subj_m[map(x -> x == 2, tone), 14] - 
@@ -1080,22 +1326,22 @@ function get_old_probe_subj(subj_m::Array{Int64,2}, subj_id::String, col_offset:
 							mean(rt[mask_corr_cue2]), 
 							mean(rt[mask_incorr_cue1]), 
 							mean(rt[mask_incorr_cue2]),
-							mean(rt[mask_corr_amb1 .| mask_incorr_amb2]), 
-							mean(rt[mask_corr_amb2 .| mask_incorr_amb1]),  
+							mean(rt[mask_corr_p1 .| mask_incorr_p2]), 
+							mean(rt[mask_corr_p2 .| mask_incorr_p1]),  
 							100.0*count(x->x==true, mask_corr_cue1)/count(x -> x == true, mask_corr_cue1 .| mask_incorr_cue1), 
 							100.0*count(x->x==true, mask_corr_cue2)/count(x -> x == true, mask_corr_cue2 .| mask_incorr_cue2), 
 							100.0*count(x->x==true, mask_incorr_cue1)/count(x -> x == true, mask_corr_cue1 .| mask_incorr_cue1), 
 							100.0*count(x->x==true, mask_incorr_cue2)/count(x -> x == true, mask_corr_cue2 .| mask_incorr_cue2),
-							100.0*count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb2)/count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb1 .| mask_corr_amb2 .| mask_incorr_amb2), 
-							100.0*count(x -> x == true, mask_corr_amb2 .| mask_incorr_amb1)/count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb1 .| mask_corr_amb2 .| mask_incorr_amb2), 
-							(count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb2) - 
-							count(x -> x == true, mask_corr_amb2 .| mask_incorr_amb1))/count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb1 .| mask_corr_amb2 .| mask_incorr_amb2),
+							100.0*count(x -> x == true, mask_corr_p1 .| mask_incorr_p2)/count(x -> x == true, mask_corr_p1 .| mask_incorr_p1 .| mask_corr_p2 .| mask_incorr_p2), 
+							100.0*count(x -> x == true, mask_corr_p2 .| mask_incorr_p1)/count(x -> x == true, mask_corr_p1 .| mask_incorr_p1 .| mask_corr_p2 .| mask_incorr_p2), 
+							(count(x -> x == true, mask_corr_p1 .| mask_incorr_p2) - 
+							count(x -> x == true, mask_corr_p2 .| mask_incorr_p1))/count(x -> x == true, mask_corr_p1 .| mask_incorr_p1 .| mask_corr_p2 .| mask_incorr_p2),
 							100.0*count(x->x==true, mask_om_cue1)/count(x->x==2, tone), 
 							100.0*count(x->x==true, mask_om_cue2)/count(x->x==8, tone), 
-							100.0*count(x -> x == true, mask_om_amb1 .| mask_om_amb2)/count(x->x==5,tone), 
+							100.0*count(x -> x == true, mask_om_p1 .| mask_om_p2)/count(x->x==5,tone), 
 							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1), 
-							mean([rt[mask_corr_amb1 .| mask_incorr_amb1] ; 
-								rt[mask_corr_amb2 .| mask_incorr_amb2]])] ;
+							mean([rt[mask_corr_p1 .| mask_incorr_p1] ; 
+								rt[mask_corr_p2 .| mask_incorr_p2]])] ;
 
 	else
 
@@ -1103,19 +1349,19 @@ function get_old_probe_subj(subj_m::Array{Int64,2}, subj_id::String, col_offset:
 		mask_corr_cue2 = map((x,y,z) -> x == 0 && y != 0 && z == 1, subj_m[:,2], subj_m[:,15], subj_m[:,3]) ;
 		mask_incorr_cue1 = map((x,y,z) -> x == 1 && y != 0 && z == 0, subj_m[:,2], subj_m[:,13], subj_m[:,3]) ;
 		mask_incorr_cue2 = map((x,y,z) -> x == 3 && y != 0 && z == 1, subj_m[:,2], subj_m[:,15], subj_m[:,3]) ;
-		mask_corr_amb1 = map((x,y,z) -> x == 0 && y != 0 && z == 2, subj_m[:,2], subj_m[:,13], subj_m[:,3]) ;
-		mask_corr_amb2 = map((x,y,z) -> x == 0 && y != 0 && z == 3, subj_m[:,2], subj_m[:,15], subj_m[:,3]) ;
-		mask_incorr_amb1 = map((x,y,z) -> x == 1 && y != 0 && z == 2, subj_m[:,2], subj_m[:,13], subj_m[:,3]) ;
-		mask_incorr_amb2 = map((x,y,z) -> x == 3 && y != 0 && z == 3, subj_m[:,2], subj_m[:,15], subj_m[:,3]) ;
+		mask_corr_p1 = map((x,y,z) -> x == 0 && y != 0 && z == 2, subj_m[:,2], subj_m[:,13], subj_m[:,3]) ;
+		mask_corr_p2 = map((x,y,z) -> x == 0 && y != 0 && z == 3, subj_m[:,2], subj_m[:,15], subj_m[:,3]) ;
+		mask_incorr_p1 = map((x,y,z) -> x == 1 && y != 0 && z == 2, subj_m[:,2], subj_m[:,13], subj_m[:,3]) ;
+		mask_incorr_p2 = map((x,y,z) -> x == 3 && y != 0 && z == 3, subj_m[:,2], subj_m[:,15], subj_m[:,3]) ;
 		mask_om_cue1 = map((x,y,z) -> x == 2 && y != 0 && z == 0, subj_m[:,2], subj_m[:,13], subj_m[:,3]) ;
 		mask_om_cue2 = map((x,y,z) -> x == 2 && y != 0 && z == 1, subj_m[:,2], subj_m[:,15], subj_m[:,3]) ;
-		mask_om_amb1 = map((x,y,z) -> x == 2 && y != 0 && z == 2, subj_m[:,2], subj_m[:,13], subj_m[:,3]) ;
-		mask_om_amb2 = map((x,y,z) -> x == 2 && y != 0 && z == 3, subj_m[:,2], subj_m[:,15], subj_m[:,3]) ;
+		mask_om_p1 = map((x,y,z) -> x == 2 && y != 0 && z == 2, subj_m[:,2], subj_m[:,13], subj_m[:,3]) ;
+		mask_om_p2 = map((x,y,z) -> x == 2 && y != 0 && z == 3, subj_m[:,2], subj_m[:,15], subj_m[:,3]) ;
 
-		response[mask_corr_cue1 .| mask_corr_amb1 .| mask_incorr_cue2 .| mask_incorr_amb2] .= 8 ;
-		response[mask_corr_cue2 .| mask_corr_amb2 .| mask_incorr_cue1 .| mask_incorr_amb1] .= 2 ;
-		reward[mask_corr_cue1 .| mask_corr_amb1] .= 1 ;
-		reward[mask_corr_cue2 .| mask_corr_amb2] .= 4 ;
+		response[mask_corr_cue1 .| mask_corr_p1 .| mask_incorr_cue2 .| mask_incorr_p2] .= 8 ;
+		response[mask_corr_cue2 .| mask_corr_p2 .| mask_incorr_cue1 .| mask_incorr_p1] .= 2 ;
+		reward[mask_corr_cue1 .| mask_corr_p1] .= 1 ;
+		reward[mask_corr_cue2 .| mask_corr_p2] .= 4 ;
 		tone[mask_corr_cue1 .| mask_incorr_cue1 .| mask_om_cue1] .= 8 ;
 		tone[mask_corr_cue2 .| mask_incorr_cue2 .| mask_om_cue2] .= 2 ;
 		rt[map(x -> x == 2, tone)] = (subj_m[map(x -> x == 2, tone), 16] - 
@@ -1127,26 +1373,26 @@ function get_old_probe_subj(subj_m::Array{Int64,2}, subj_id::String, col_offset:
 							mean(rt[mask_corr_cue1]), 
 							mean(rt[mask_incorr_cue2]), 
 							mean(rt[mask_incorr_cue1]),
-							mean(rt[mask_corr_amb2 .| mask_incorr_amb1]), 
-							mean(rt[mask_corr_amb1 .| mask_incorr_amb2]), 
+							mean(rt[mask_corr_p2 .| mask_incorr_p1]), 
+							mean(rt[mask_corr_p1 .| mask_incorr_p2]), 
 							100.0*count(x->x==true, mask_corr_cue2)/count(x -> x == true, mask_corr_cue2 .| mask_incorr_cue2), 
 							100.0*count(x->x==true, mask_corr_cue1)/count(x -> x == true, mask_corr_cue1 .| mask_incorr_cue1), 
 							100.0*count(x->x==true, mask_incorr_cue2)/count(x -> x == true, mask_corr_cue2 .| mask_incorr_cue2), 
 							100.0*count(x->x==true, mask_incorr_cue1)/count(x -> x == true, mask_corr_cue1 .| mask_incorr_cue1),
-							100.0*count(x -> x == true, mask_corr_amb2 .| mask_incorr_amb1)/count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb1 .| mask_corr_amb2 .| mask_incorr_amb2), 
-							100.0*count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb2)/count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb1 .| mask_corr_amb2 .| mask_incorr_amb2), 
-							(count(x -> x == true, mask_corr_amb2 .| mask_incorr_amb1) - 
-							count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb2))/count(x -> x == true, mask_corr_amb1 .| mask_incorr_amb1 .| mask_corr_amb2 .| mask_incorr_amb2),
+							100.0*count(x -> x == true, mask_corr_p2 .| mask_incorr_p1)/count(x -> x == true, mask_corr_p1 .| mask_incorr_p1 .| mask_corr_p2 .| mask_incorr_p2), 
+							100.0*count(x -> x == true, mask_corr_p1 .| mask_incorr_p2)/count(x -> x == true, mask_corr_p1 .| mask_incorr_p1 .| mask_corr_p2 .| mask_incorr_p2), 
+							(count(x -> x == true, mask_corr_p2 .| mask_incorr_p1) - 
+							count(x -> x == true, mask_corr_p1 .| mask_incorr_p2))/count(x -> x == true, mask_corr_p1 .| mask_incorr_p1 .| mask_corr_p2 .| mask_incorr_p2),
 							100.0*count(x->x==true, mask_om_cue2)/count(x->x==2, tone), 
 							100.0*count(x->x==true, mask_om_cue1)/count(x->x==8, tone), 
-							100.0*count(x -> x == true, mask_om_amb1 .| mask_om_amb2)/count(x->x==5,tone), 
+							100.0*count(x -> x == true, mask_om_p1 .| mask_om_p2)/count(x->x==5,tone), 
 							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1), 
-							mean([rt[mask_corr_amb1 .| mask_incorr_amb1] ; 
-								rt[mask_corr_amb2 .| mask_incorr_amb2]])] ;
+							mean([rt[mask_corr_p1 .| mask_incorr_p1] ; 
+								rt[mask_corr_p2 .| mask_incorr_p2]])] ;
 
 	end
 
-	rt[mask_om_cue1 .| mask_om_cue2 .| mask_om_amb1 .| mask_om_amb2] .= rt_max ;
+	rt[mask_om_cue1 .| mask_om_cue2 .| mask_om_p1 .| mask_om_p2] .= rt_max ;
 	mask_rt_crit = map(x -> x > rt_criterion, rt) ;
 
 	return subj_t(subj_id, 
@@ -1157,185 +1403,3 @@ function get_old_probe_subj(subj_m::Array{Int64,2}, subj_id::String, col_offset:
 				write_v[14]) , write_v
 end
 
-function get_probe_mult_amb_1v1_subj(subj_m::Array{Int64,2}, subj_id::String)
-
-	reward = zeros(Int64, size(subj_m,1)) ;
-	response = zeros(Int64, size(subj_m,1)) ;
-	tone = zeros(Int64, size(subj_m,1)) ;
-	rt = zeros(Float64, size(subj_m,1)) ;
-
-	id_number_idx = findlast(isequal('_'), subj_id) ;
-	id_number = tryparse(Int64, subj_id[id_number_idx + 1 : end]) ;
-
-	mask_corr_2 = map((x,y) -> x == 0 && y == 1, subj_m[:,2], subj_m[:,3]) ;
-	mask_corr_8 = map((x,y) -> x == 0 && y == 0, subj_m[:,2], subj_m[:,3]) ;
-	mask_incorr_2 = map((x,y) -> (x == 1 || x == 3) && y == 1, subj_m[:,2], subj_m[:,3]) ;
-	mask_incorr_8 = map((x,y) -> (x == 1 || x == 3) && y == 0, subj_m[:,2], subj_m[:,3]) ;
-
-	# Name coding example :
-	# amb11 : amb1 (4 KHz) playing while route 1 (left) was the correct response
-	# amb12 : amb1 (4 KHz) playing while route 2 (right) was the correct response
-
-	mask_corr_amb11 = map((x,y,z) -> x == 0 && y == 3 && z != 0, subj_m[:,2], subj_m[:,3], subj_m[:, 10]) ;
-	mask_corr_amb21 = map((x,y,z) -> x == 0 && (y == 5 || y == 4) && z != 0, 
-									subj_m[:,2], subj_m[:,3], subj_m[:, 10]) ;
-	mask_corr_amb31 = map((x,y,z) -> x == 0 && y == 2 && z != 0, subj_m[:,2], subj_m[:,3], subj_m[:, 10]) ;
-
-	mask_corr_amb12 = map((x,y,z) -> x == 0 && y == 3 && z != 0, subj_m[:,2], subj_m[:,3], subj_m[:, 12]) ;
-	mask_corr_amb22 = map((x,y,z) -> x == 0 && (y == 5 || y == 4) && z != 0, 
-									subj_m[:,2], subj_m[:,3], subj_m[:, 12]) ;
-	mask_corr_amb32 = map((x,y,z) -> x == 0 && y == 2 && z != 0, subj_m[:,2], subj_m[:,3], subj_m[:, 12]) ;
-
-	mask_incorr_amb11 = map((x,y,z) -> x == 1 && y == 3 && z != 0, subj_m[:,2], subj_m[:,3], subj_m[:, 10]) ;
-	mask_incorr_amb21 = map((x,y,z) -> x == 1 && (y == 5 || y == 4) && z != 0, 
-									subj_m[:,2], subj_m[:,3], subj_m[:, 10]) ;
-	mask_incorr_amb31 = map((x,y,z) -> x == 1 && y == 2 && z != 0, subj_m[:,2], subj_m[:,3], subj_m[:, 10]) ;
-
-	mask_incorr_amb12 = map((x,y,z) -> x == 3 && y == 3 && z != 0, subj_m[:,2], subj_m[:,3], subj_m[:, 12]) ;
-	mask_incorr_amb22 = map((x,y,z) -> x == 3 && (y == 5 || y == 4) && z != 0, 
-									subj_m[:,2], subj_m[:,3], subj_m[:, 12]) ;
-	mask_incorr_amb32 = map((x,y,z) -> x == 3 && y == 2 && z != 0, subj_m[:,2], subj_m[:,3], subj_m[:, 12]) ;
-
-	mask_om_2 = map((x,y) -> x == 2 && y == 1, subj_m[:,2], subj_m[:,3]) ;
-	mask_om_8 = map((x,y) -> x == 2 && y == 0, subj_m[:,2], subj_m[:,3]) ;
-
-	mask_om_amb1 = map((x,y) -> x == 2 && y == 3, subj_m[:,2], subj_m[:,3]) ;
-	mask_om_amb2 = map((x,y) -> x == 2 && (y == 5 || y == 4), subj_m[:,2], subj_m[:,3]) ;
-	mask_om_amb3 = map((x,y) -> x == 2 && y == 2, subj_m[:,2], subj_m[:,3]) ;
-
-	mask_prem = map(x -> x == 4, subj_m[:,2]) ;
-
-	tone[mask_corr_2 .| mask_incorr_2 .| mask_om_2] .= 2 ;
-	tone[mask_corr_8 .| mask_incorr_8 .| mask_om_8] .= 8 ;
-
-	tone[map((x,y) -> x == 3 && y == false, subj_m[:,3], mask_prem)] .= 4 ; # KHz
-	tone[map((x,y) -> (x == 5 || x == 4) && y == false, subj_m[:,3], mask_prem)] .= 5 ; # KHz
-	tone[map((x,y) -> x == 2 && y == false, subj_m[:,3], mask_prem)] .= 6 ; # KHz 
-
-	response[mask_corr_2 .| mask_incorr_8] .= 2 ;
-	response[mask_corr_8 .| mask_incorr_2] .= 8 ;
-
-	write_v = Array{Any,1}(undef, length(probe_mult_amb_1v1_header_v)) ;
-	write_v[1] = id_number ;
-
-	if mod(id_number, 2) == 0 
-
-		response[mask_corr_amb11 .| mask_corr_amb21 .| mask_corr_amb31 .|
-				mask_incorr_amb12 .| mask_incorr_amb22 .| mask_incorr_amb32] .= 2 ;
-
-		response[mask_corr_amb12 .| mask_corr_amb22 .| mask_corr_amb32 .|
-				mask_incorr_amb11 .| mask_incorr_amb21 .| mask_incorr_amb31] .= 8 ;
-
-		response[map((x,y) -> x == true && y != 0, mask_prem, subj_m[:, 8])] .= 2 ;
-		response[map((x,y) -> x == true && y != 0, mask_prem, subj_m[:, 9])] .= 8 ;
-
-		rt[map(x -> x == 2, tone)] = (subj_m[map(x -> x == 2, tone), 11] -
-									subj_m[map(x -> x == 2, tone), 10]) / 100.0 ;
-
-		rt[map(x -> x == 8, tone)] = (subj_m[map(x -> x == 8, tone), 13] -
-									subj_m[map(x -> x == 8, tone), 12]) / 100.0 ;
-
-		rt[map(x -> x == 4, tone)] = (subj_m[map(x -> x == 4, tone), 11] -
-									subj_m[map(x -> x == 4, tone), 10]) / 100.0 ;
-
-		rt[map((x) -> x == 5, subj_m[:,3])] = (subj_m[map((x) -> x == 5, subj_m[:,3]), 11] -
-									subj_m[map((x) -> x == 5, subj_m[:,3]), 10]) / 100.0 ;
-		rt[map((x) -> x == 4, subj_m[:,3])] = (subj_m[map((x) -> x == 4, subj_m[:,3]), 13] -
-									subj_m[map((x) -> x == 4, subj_m[:,3]), 12]) / 100.0 ;
-
-		rt[map(x -> x == 6, tone)] = (subj_m[map(x -> x == 6, tone), 13] -
-									subj_m[map(x -> x == 6, tone), 12]) / 100.0 ;
-
-		write_v[2:end] = [mean(rt[mask_corr_2]), 
-							mean(rt[mask_corr_8]), 
-							mean(rt[mask_incorr_2]), 
-							mean(rt[mask_incorr_8]),
-							mean(rt[mask_corr_amb11 .| mask_incorr_amb12]), 
-							mean(rt[mask_corr_amb21 .| mask_incorr_amb22]),
-							mean(rt[mask_corr_amb31 .| mask_incorr_amb32]),
-							mean(rt[mask_corr_amb12 .| mask_incorr_amb11]), 
-							mean(rt[mask_corr_amb22 .| mask_incorr_amb21]),
-							mean(rt[mask_corr_amb32 .| mask_incorr_amb31]),
-							100.0*count(x->x==true, mask_corr_2)/count(x -> x == true, mask_corr_2 .| mask_incorr_2), 
-							100.0*count(x->x==true, mask_corr_8)/count(x -> x == true, mask_corr_8 .| mask_incorr_8), 
-							100.0*count(x->x==true, mask_incorr_2)/count(x -> x == true, mask_corr_2 .| mask_incorr_2), 
-							100.0*count(x->x==true, mask_incorr_8)/count(x -> x == true, mask_corr_8 .| mask_incorr_8),
-							100.0*count(x -> x == true, mask_corr_amb11 .| mask_incorr_amb12)/count(x -> x == true, mask_corr_amb11 .| mask_incorr_amb11 .| mask_corr_amb12 .| mask_incorr_amb12), 
-							100.0*count(x -> x == true, mask_corr_amb21 .| mask_incorr_amb22)/count(x -> x == true, mask_corr_amb21 .| mask_incorr_amb21 .| mask_corr_amb22 .| mask_incorr_amb22), 
-							100.0*count(x -> x == true, mask_corr_amb31 .| mask_incorr_amb32)/count(x -> x == true, mask_corr_amb31 .| mask_incorr_amb31 .| mask_corr_amb32 .| mask_incorr_amb32), 
-							100.0*count(x -> x == true, mask_corr_amb12 .| mask_incorr_amb11)/count(x -> x == true, mask_corr_amb12 .| mask_incorr_amb12 .| mask_corr_amb11 .| mask_incorr_amb11), 
-							100.0*count(x -> x == true, mask_corr_amb22 .| mask_incorr_amb21)/count(x -> x == true, mask_corr_amb22 .| mask_incorr_amb22 .| mask_corr_amb21 .| mask_incorr_amb21), 
-							100.0*count(x -> x == true, mask_corr_amb32 .| mask_incorr_amb31)/count(x -> x == true, mask_corr_amb32 .| mask_incorr_amb32 .| mask_corr_amb31 .| mask_incorr_amb31), 
-							100.0*count(x->x==true, mask_om_2)/count(x->x==2, tone), 
-							100.0*count(x->x==true, mask_om_8)/count(x->x==8, tone), 
-							100.0*count(x -> x == true, mask_om_amb1)/count(x->x==3,tone), 
-							100.0*count(x -> x == true, mask_om_amb2)/count(x->x==4,tone), 
-							100.0*count(x -> x == true, mask_om_amb3)/count(x->x==6,tone), 
-							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1) ] ;
-
-	else
-		
-		response[mask_corr_amb11 .| mask_corr_amb21 .| mask_corr_amb31 .|
-				mask_incorr_amb12 .| mask_incorr_amb22 .| mask_incorr_amb32] .= 8 ;
-
-		response[mask_corr_amb12 .| mask_corr_amb22 .| mask_corr_amb32 .|
-				mask_incorr_amb11 .| mask_incorr_amb21 .| mask_incorr_amb31] .= 2 ;
-
-		response[map((x,y) -> x == true && y != 0, mask_prem, subj_m[:, 8])] .= 8 ;
-		response[map((x,y) -> x == true && y != 0, mask_prem, subj_m[:, 9])] .= 2 ;
-
-		rt[map(x -> x == 2, tone)] = (subj_m[map(x -> x == 2, tone), 13] -
-									subj_m[map(x -> x == 2, tone), 12]) / 100.0 ;
-
-		rt[map(x -> x == 8, tone)] = (subj_m[map(x -> x == 8, tone), 11] -
-									subj_m[map(x -> x == 8, tone), 10]) / 100.0 ;
-
-		rt[map(x -> x == 4, tone)] = (subj_m[map(x -> x == 4, tone), 13] -
-									subj_m[map(x -> x == 4, tone), 12]) / 100.0 ;
-
-		rt[map((x) -> x == 5, subj_m[:,3])] = (subj_m[map((x) -> x == 5, subj_m[:,3]), 13] -
-									subj_m[map((x) -> x == 5, subj_m[:,3]), 12]) / 100.0 ;
-		rt[map((x) -> x == 4, subj_m[:,3])] = (subj_m[map((x) -> x == 4, subj_m[:,3]), 11] -
-									subj_m[map((x) -> x == 4, subj_m[:,3]), 10]) / 100.0 ;
-
-		rt[map(x -> x == 6, tone)] = (subj_m[map(x -> x == 6, tone), 11] -
-									subj_m[map(x -> x == 6, tone), 10]) / 100.0 ;
-
-		write_v[2:end] = [mean(rt[mask_corr_2]), 
-							mean(rt[mask_corr_8]), 
-							mean(rt[mask_incorr_2]), 
-							mean(rt[mask_incorr_8]),
-							mean(rt[mask_corr_amb12 .| mask_incorr_amb11]), 
-							mean(rt[mask_corr_amb22 .| mask_incorr_amb21]),
-							mean(rt[mask_corr_amb32 .| mask_incorr_amb31]),
-							mean(rt[mask_corr_amb11 .| mask_incorr_amb12]), 
-							mean(rt[mask_corr_amb21 .| mask_incorr_amb22]),
-							mean(rt[mask_corr_amb31 .| mask_incorr_amb32]),
-							100.0*count(x->x==true, mask_corr_2)/count(x -> x == true, mask_corr_2 .| mask_incorr_2), 
-							100.0*count(x->x==true, mask_corr_8)/count(x -> x == true, mask_corr_8 .| mask_incorr_8), 
-							100.0*count(x->x==true, mask_incorr_2)/count(x -> x == true, mask_corr_2 .| mask_incorr_2), 
-							100.0*count(x->x==true, mask_incorr_8)/count(x -> x == true, mask_corr_8 .| mask_incorr_8),
-							100.0*count(x -> x == true, mask_corr_amb12 .| mask_incorr_amb11)/count(x -> x == true, mask_corr_amb11 .| mask_incorr_amb11 .| mask_corr_amb12 .| mask_incorr_amb12), 
-							100.0*count(x -> x == true, mask_corr_amb22 .| mask_incorr_amb21)/count(x -> x == true, mask_corr_amb21 .| mask_incorr_amb21 .| mask_corr_amb22 .| mask_incorr_amb22), 
-							100.0*count(x -> x == true, mask_corr_amb32 .| mask_incorr_amb31)/count(x -> x == true, mask_corr_amb31 .| mask_incorr_amb31 .| mask_corr_amb32 .| mask_incorr_amb32), 
-							100.0*count(x -> x == true, mask_corr_amb11 .| mask_incorr_amb12)/count(x -> x == true, mask_corr_amb12 .| mask_incorr_amb12 .| mask_corr_amb11 .| mask_incorr_amb11), 
-							100.0*count(x -> x == true, mask_corr_amb21 .| mask_incorr_amb22)/count(x -> x == true, mask_corr_amb22 .| mask_incorr_amb22 .| mask_corr_amb21 .| mask_incorr_amb21), 
-							100.0*count(x -> x == true, mask_corr_amb31 .| mask_incorr_amb32)/count(x -> x == true, mask_corr_amb32 .| mask_incorr_amb32 .| mask_corr_amb31 .| mask_incorr_amb31), 
-							100.0*count(x->x==true, mask_om_2)/count(x->x==2, tone), 
-							100.0*count(x->x==true, mask_om_8)/count(x->x==8, tone), 
-							100.0*count(x -> x == true, mask_om_amb1)/count(x->x==3,tone), 
-							100.0*count(x -> x == true, mask_om_amb2)/count(x->x==4,tone), 
-							100.0*count(x -> x == true, mask_om_amb3)/count(x->x==6,tone), 
-							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1) ] ;
-	end
-
-	rt[mask_om_2 .| mask_om_8 .| mask_om_amb1 .| mask_om_amb2 .| mask_om_amb3] .= rt_max ;
-	mask_rt_crit = map(x -> x > rt_criterion, rt) ;
-
-	return subj_t(subj_id, 
-				response[mask_rt_crit], 
-				reward[mask_rt_crit], 
-				tone[mask_rt_crit], 
-				rt[mask_rt_crit], 
-				0.0) , write_v
-end

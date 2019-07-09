@@ -14,29 +14,29 @@ function mutual_info(subj_v::Array{subj_t,1}, n_trials_in_the_past::Int64)
 
 	i = 1 ;
 	for subj in subj_v
-		#mask_amb_trial = map((x,y,z) -> x == 5 && y != 0 && z > n_trials_in_the_past, 
+		#mask_p_trial = map((x,y,z) -> x == 5 && y != 0 && z > n_trials_in_the_past, 
 		#			subj.tone_v, subj.response_v, 1:length(subj.tone_v)) ;
-		mask_amb_trial = map((y,z) -> y != 0 && z > n_trials_in_the_past, 
+		mask_p_trial = map((y,z) -> y != 0 && z > n_trials_in_the_past, 
 							subj.response_v, 1:length(subj.tone_v)) ;
-		past_trial_idx_v = findall(x ->  x == true, mask_amb_trial) .- n_trials_in_the_past ;
+		past_trial_idx_v = findall(x ->  x == true, mask_p_trial) .- n_trials_in_the_past ;
 
-		e_cp_v[i] = get_entropy(subj.response_v[mask_amb_trial]) ;
+		e_cp_v[i] = get_entropy(subj.response_v[mask_p_trial]) ;
 		e_pr_v[i] = get_entropy(subj.reward_v[past_trial_idx_v]) ;
 		e_pp_v[i] = get_entropy(subj.response_v[past_trial_idx_v]) ;
-		e_pt_v[i] = get_entropy(subj.tone_v[mask_amb_trial]) ;
+		e_pt_v[i] = get_entropy(subj.tone_v[mask_p_trial]) ;
 
 		if e_cp_v[i] > 1e-16
-			push!(mi_pr_v, mutual_information(subj.response_v[mask_amb_trial], 
+			push!(mi_pr_v, mutual_information(subj.response_v[mask_p_trial], 
 											subj.reward_v[past_trial_idx_v]) / e_cp_v[i]) ;
-			push!(mi_pp_v, mutual_information(subj.response_v[mask_amb_trial],
+			push!(mi_pp_v, mutual_information(subj.response_v[mask_p_trial],
 											subj.response_v[past_trial_idx_v]) / e_cp_v[i]) ;
-			push!(mi_prp_v, conditional_mi(subj.response_v[mask_amb_trial],
+			push!(mi_prp_v, conditional_mi(subj.response_v[mask_p_trial],
 											subj.reward_v[past_trial_idx_v],
 											subj.response_v[past_trial_idx_v]) / e_cp_v[i]) ;
-			push!(mi_ppr_v, conditional_mi(subj.response_v[mask_amb_trial],
+			push!(mi_ppr_v, conditional_mi(subj.response_v[mask_p_trial],
 											subj.response_v[past_trial_idx_v],
 											subj.reward_v[past_trial_idx_v]) / e_cp_v[i]) ;
-			push!(mi_pt_v, mutual_information(subj.response_v[mask_amb_trial], 
+			push!(mi_pt_v, mutual_information(subj.response_v[mask_p_trial], 
 											subj.tone_v[past_trial_idx_v]) / e_cp_v[i]) ;
 		end
 		i += 1 ;
@@ -67,11 +67,11 @@ function mutual_info(subj_v::Array{subj_t,1}, n_trials_in_the_past::Int64)
 		i = 1 ;
 		for subj in subj_v
 			if e_cp_v[i] > 1e-16
-				#mask_amb_trial = map((x,y,z) -> x == 5 && y != 0 && z > n_trials_in_the_past, 
+				#mask_p_trial = map((x,y,z) -> x == 5 && y != 0 && z > n_trials_in_the_past, 
 				#				subj.tone_v, subj.response_v, 1:length(subj.tone_v)) ;
-				mask_amb_trial = map((y,z) -> y != 0 && z > n_trials_in_the_past, 
+				mask_p_trial = map((y,z) -> y != 0 && z > n_trials_in_the_past, 
 									subj.response_v, 1:length(subj.tone_v)) ;
-				past_trial_idx_v = findall(x ->  x == true, mask_amb_trial) .- n_trials_in_the_past ;
+				past_trial_idx_v = findall(x ->  x == true, mask_p_trial) .- n_trials_in_the_past ;
 
 				past_response_v = subj.response_v[past_trial_idx_v] ;
 				past_reward_v = subj.reward_v[past_trial_idx_v] ;
@@ -84,17 +84,17 @@ function mutual_info(subj_v::Array{subj_t,1}, n_trials_in_the_past::Int64)
 				past_response_v = map(x -> x[2], past_tuple) ;
 				past_tone_v = map(x -> x[3], past_tuple) ;
 
-				push!(smi_pr_v, mutual_information(subj.response_v[mask_amb_trial], 
+				push!(smi_pr_v, mutual_information(subj.response_v[mask_p_trial], 
 											past_reward_v) / e_cp_v[i]) ;
-				push!(smi_pp_v, mutual_information(subj.response_v[mask_amb_trial],
+				push!(smi_pp_v, mutual_information(subj.response_v[mask_p_trial],
 												past_response_v) / e_cp_v[i]) ;
-				push!(smi_prp_v, conditional_mi(subj.response_v[mask_amb_trial],
+				push!(smi_prp_v, conditional_mi(subj.response_v[mask_p_trial],
 												past_reward_v,
 												past_response_v) / e_cp_v[i]) ;
-				push!(smi_ppr_v, conditional_mi(subj.response_v[mask_amb_trial],
+				push!(smi_ppr_v, conditional_mi(subj.response_v[mask_p_trial],
 												past_response_v,
 												past_reward_v) / e_cp_v[i]) ;
-				push!(smi_pt_v, mutual_information(subj.response_v[mask_amb_trial], 
+				push!(smi_pt_v, mutual_information(subj.response_v[mask_p_trial], 
 											past_tone_v) / e_cp_v[i]) ;
 			end
 			i += 1 ;

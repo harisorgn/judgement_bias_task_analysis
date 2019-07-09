@@ -18,7 +18,7 @@ figure()
 ax = gca()
 ax.tick_params(labelsize = 18)
 
-cf = fit_psychometric([subj_v[1]], 4, :log) ;
+cf = fit_psychometric([subj_v[1]], 4, :log_std) ;
 plot(x, log_model(x, cf),"-r")
 
 show()

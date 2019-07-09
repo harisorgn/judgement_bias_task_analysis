@@ -6,7 +6,6 @@ struct subj_psycho_t
 	conditioned_reward::Int64
 end
 
-
 function get_switch_after_incorr(subj_v::Array{subj_t,1})
 
 	dict = Dict{String, Tuple{Float64, Float64, Float64, Float64, Int64, Int64, Int64}}() ;
@@ -14,7 +13,7 @@ function get_switch_after_incorr(subj_v::Array{subj_t,1})
 	n_more_than_two_sessions = 0 ;
 	for subj in subj_v
 
-		n_incorr_before_amb = 0 ;
+		n_incorr_before_p = 0 ;
 		n_switch = 0 ;
 		n_not_switch = 0 ;
 		if !haskey(dict, subj.id)
@@ -30,7 +29,7 @@ function get_switch_after_incorr(subj_v::Array{subj_t,1})
 						subj_v[idx].response_v[i-1] != 0 && subj_v[idx].response_v[i] != 0 &&
 						subj_v[idx].tone_v[i-1] != 0 && subj_v[idx].tone_v[i-1] != 5
 
-						n_incorr_before_amb += 1 ;
+						n_incorr_before_p += 1 ;
 						if subj_v[idx].response_v[i] != subj_v[idx].response_v[i-1]
 							n_switch += 1 ;
 							push!(switch_rt_v, subj_v[idx].rt_v[i]) ;
@@ -50,18 +49,18 @@ function get_switch_after_incorr(subj_v::Array{subj_t,1})
 
 			p = 0.5 ;
 			cum_prob =  0.0 ;
-			n_switch_binom = n_incorr_before_amb ;
+			n_switch_binom = n_incorr_before_p ;
 
 			while cum_prob < 0.05
-				cum_prob += binomial(Int128(n_incorr_before_amb), Int128(n_switch_binom)) * p^n_switch_binom * 
-									(1.0 - p)^(n_incorr_before_amb - n_switch_binom) ;
+				cum_prob += binomial(Int128(n_incorr_before_p), Int128(n_switch_binom)) * p^n_switch_binom * 
+									(1.0 - p)^(n_incorr_before_p - n_switch_binom) ;
 				n_switch_binom -= 1 ;
 			end
-			dict[subj.id] = (100.0*n_switch/n_incorr_before_amb, 
-							100.0*(n_switch_binom + 1)/n_incorr_before_amb,
+			dict[subj.id] = (100.0*n_switch/n_incorr_before_p, 
+							100.0*(n_switch_binom + 1)/n_incorr_before_p,
 							mean(switch_rt_v),
 							mean(not_switch_rt_v),
-							n_incorr_before_amb,
+							n_incorr_before_p,
 							n_switch,
 							n_not_switch) ;
 		end
@@ -138,12 +137,12 @@ function get_same_after_corr(subj_v::Array{subj_t,1})
 
 	dict = Dict{String, Tuple{Float64, Float64}}() ;
 
-	total_n_corr_before_amb = 0 ;
+	total_n_corr_before_p = 0 ;
 	total_n_same = 0 ;
 
 	for subj in subj_v
 
-		n_corr_before_amb = 0 ;
+		n_corr_before_p = 0 ;
 		n_same = 0 ;
 
 		if !haskey(dict, subj.id)
@@ -151,7 +150,7 @@ function get_same_after_corr(subj_v::Array{subj_t,1})
 			for idx in subj_idx
 				for i = 2 : length(subj_v[idx].response_v)
 					if subj_v[idx].reward_v[i-1] != 0 && subj_v[idx].tone_v[i] == 5
-						n_corr_before_amb += 1 ;
+						n_corr_before_p += 1 ;
 						if subj_v[idx].response_v[i] == subj_v[idx].response_v[i-1]
 							n_same += 1 ;
 						end
@@ -161,21 +160,57 @@ function get_same_after_corr(subj_v::Array{subj_t,1})
 
 			p = 0.5 ;
 			cum_prob =  0.0 ;
-			n_same_binom = n_corr_before_amb ;
+			n_same_binom = n_corr_before_p ;
 
 			while cum_prob < 0.05
-				cum_prob += binomial(BigInt(n_corr_before_amb), BigInt(n_same_binom)) * p^n_same_binom * 
-									(1.0 - p)^(n_corr_before_amb - n_same_binom) ;
+				cum_prob += binomial(BigInt(n_corr_before_p), BigInt(n_same_binom)) * p^n_same_binom * 
+									(1.0 - p)^(n_corr_before_p - n_same_binom) ;
 				n_same_binom -= 1 ;
 			end
-			dict[subj.id] = (100.0*n_same/n_corr_before_amb, 100.0*(n_same_binom + 1)/n_corr_before_amb) ;
+			dict[subj.id] = (100.0*n_same/n_corr_before_p, 100.0*(n_same_binom + 1)/n_corr_before_p) ;
 
-			total_n_corr_before_amb += n_corr_before_amb ;
+			total_n_corr_before_p += n_corr_before_p ;
 			total_n_same += n_same ;
 		end
 	end
 	
 	return dict
+end
+
+function get_unique_subj_v(subj_v::Array{subj_t,1})
+
+	# get a single subj_t structure for all sessions of a subject
+	# by concatenating the data across sessions
+
+	unique_subj_id_v = unique([subj.id for subj in subj_v]) ;
+	unique_subj_v = Array{subj_t,1}() ;
+
+	for id in unique_subj_id_v
+
+		response_v = Array{Int64,1}() ;
+		reward_v = Array{Int64,1}() ;
+		tone_v = Array{Int64,1}() ;
+		rt_v = Array{Float64,1}() ;
+		cbi_v = Array{Float64,1}() ;
+
+		subj_idx_v = findall(x -> x.id == id, subj_v)
+
+		for idx in subj_idx_v
+			append!(response_v, subj_v[idx].response_v) ;
+			append!(reward_v, subj_v[idx].reward_v) ;
+			append!(tone_v, subj_v[idx].tone_v) ;
+			append!(rt_v, subj_v[idx].rt_v) ;
+			push!(cbi_v, subj_v[idx].cbi) ;
+		end
+		push!(unique_subj_v, 
+			subj_t(id,
+				response_v,
+				reward_v,
+				tone_v,
+				rt_v,
+				mean(cbi_v))) ;
+	end
+	return unique_subj_v
 end
 
 function get_psychometric(subj_v::Array{subj_t,1}, conditioned_tone::Int64, conditioned_reward::Int64)
