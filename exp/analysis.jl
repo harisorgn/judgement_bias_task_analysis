@@ -3,6 +3,7 @@ struct subj_psycho_t
 	acc_m::Matrix{Float64}
 	rt_m::Matrix{Float64}
 	conditioned_tone::Int64
+	conditioned_response::Int64
 	conditioned_reward::Int64
 end
 
@@ -213,7 +214,8 @@ function get_unique_subj_v(subj_v::Array{subj_t,1})
 	return unique_subj_v
 end
 
-function get_psychometric(subj_v::Array{subj_t,1}, conditioned_tone::Int64, conditioned_reward::Int64)
+function get_psychometric(subj_v::Array{subj_t,1}, conditioned_tone::Int64, 
+						conditioned_response::Int64, conditioned_reward::Int64)
 
 	# conditioned variables correspond to the previous trial
 
@@ -231,7 +233,7 @@ function get_psychometric(subj_v::Array{subj_t,1}, conditioned_tone::Int64, cond
 
 		for i = 1 : length(tone_v)
 			mask_tone = get_mask_for_psychometric(subj.tone_v, subj.response_v, subj.reward_v, tone_v[i], 
-												conditioned_tone, conditioned_reward);
+												conditioned_tone, conditioned_response, conditioned_reward);
 			n_trials = length(subj.tone_v[mask_tone]) ;
 
 			acc_m[i, :] = [count(x->x==2, subj.response_v[mask_tone])/n_trials, 
@@ -239,16 +241,45 @@ function get_psychometric(subj_v::Array{subj_t,1}, conditioned_tone::Int64, cond
 			rt_m[i, :] = [mean(subj.rt_v[map((x,y) -> x == 2 && y == true, subj.response_v, mask_tone)]), 
 						mean(subj.rt_v[map((x,y) -> x == 8 && y == true, subj.response_v, mask_tone)])] ;
 		end
-		push!(subj_psycho_t_v, subj_psycho_t(subj.id, acc_m, rt_m, conditioned_tone, conditioned_reward))
+		push!(subj_psycho_t_v, subj_psycho_t(subj.id, acc_m, rt_m, 
+										conditioned_tone, conditioned_response, conditioned_reward))
 	end	
 
 	return subj_psycho_t_v
 end
 
 function get_mask_for_psychometric(tone_v::Array{Int64,1}, response_v::Array{Int64,1}, reward_v::Array{Int64,1},
-								tone::Int64, conditioned_tone::Int64, conditioned_reward::Int64)
+								tone::Int64, conditioned_tone::Int64, 
+								conditioned_response::Int64, conditioned_reward::Int64)
+	
+	if conditioned_tone != -1 && conditioned_response != -1 && conditioned_reward != -1 
+		mask_tone = map((x,y,z,k,l) -> x == tone && y != 0 && 
+			z == conditioned_tone && k != conditioned_response && l == conditioned_reward, 
+			tone_v[2:end], response_v[2:end], 
+			tone_v[1:end-1], response_v[1:end-1], reward_v[1:end-1]) ;
 
-	if conditioned_tone != -1 && conditioned_reward != -1 
+		pushfirst!(mask_tone, false) ;
+		return mask_tone
+
+	elseif conditioned_tone != -1 && conditioned_response != -1 
+		mask_tone = map((x,y,z,k) -> x == tone && y != 0 && 
+			z == conditioned_tone && k != conditioned_response, 
+			tone_v[2:end], response_v[2:end], 
+			tone_v[1:end-1], response_v[1:end-1]) ;
+
+		pushfirst!(mask_tone, false) ;
+		return mask_tone
+
+	elseif conditioned_response != -1 && conditioned_reward != -1 
+		mask_tone = map((x,y,z,k) -> x == tone && y != 0 && 
+			z == conditioned_response && k == conditioned_reward, 
+			tone_v[2:end], response_v[2:end], 
+			response_v[1:end-1], reward_v[1:end-1]) ;
+
+		pushfirst!(mask_tone, false) ;
+		return mask_tone
+
+	elseif conditioned_tone != -1 && conditioned_reward != -1 
 		mask_tone = map((x,y,z,k,l) -> x == tone && y != 0 && 
 			z == conditioned_tone && k != 0 && l == conditioned_reward, 
 			tone_v[2:end], response_v[2:end], 
@@ -260,6 +291,13 @@ function get_mask_for_psychometric(tone_v::Array{Int64,1}, response_v::Array{Int
 	elseif conditioned_tone != -1
 		mask_tone = map((x,y,z,k) -> x == tone && y != 0 && z == conditioned_tone && k != 0, 
 			tone_v[2:end], response_v[2:end], tone_v[1:end-1], response_v[1:end-1]) ;
+
+		pushfirst!(mask_tone, false) ;
+		return mask_tone
+
+	elseif conditioned_response != -1
+		mask_tone = map((x,y,z) -> x == tone && y != 0 && z == conditioned_response, 
+			tone_v[2:end], response_v[2:end], response_v[1:end-1]) ;
 
 		pushfirst!(mask_tone, false) ;
 		return mask_tone

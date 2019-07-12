@@ -382,11 +382,14 @@ function plot_rt_prev(subj_v::Array{subj_t,1})
 	show()
 end
 
-function plot_psychometric(subj_v::Array{subj_t,1} ; fit = false, curve = :none)
+function plot_psychometric(subj_v::Array{subj_t,1}, conditioned_tone::Int64,
+			  			conditioned_response::Int64,  conditioned_reward::Int64; 
+			  			fit = false, curve = :none)
 
 	unique_subj_v = get_unique_subj_v(subj_v) ;
 
-	subj_psycho_v = get_psychometric(unique_subj_v, -1, -1)	
+	subj_psycho_v = get_psychometric(unique_subj_v, conditioned_tone, 
+									conditioned_response, conditioned_reward)	
 
 	n_tones = size(subj_psycho_v[1].acc_m, 1) ;
 	n_subj = length(subj_psycho_v) ;
@@ -397,10 +400,10 @@ function plot_psychometric(subj_v::Array{subj_t,1} ; fit = false, curve = :none)
 	r_8_m = Matrix{Float64}(undef, n_tones, n_subj) ;
 	rt_8_m = Matrix{Float64}(undef, n_tones, n_subj) ;
 
-	x_data = [2.0, 4.5, 4.75, 5.25, 5.5, 8.0] ;
+	#x_data = [2.0, 4.5, 4.75, 5.25, 5.5, 8.0] ;
 	#x_data = [2.0, 4.0, 5.0, 6.0, 8.0] ;
 	#x_data = [2.0, 5.0, 5.5, 6.0, 9.0] ;
-	#x_data = [2.0, 5.0, 8.0] ;
+	x_data = [2.0, 5.0, 8.0] ;
 
 	bic_2_v = Array{Float64,1}() ;
 	aic_2_v = Array{Float64,1}() ;
@@ -514,37 +517,39 @@ function plot_psychometric(subj_v::Array{subj_t,1} ; fit = false, curve = :none)
 	title("Low reward responses", fontsize = 16)
 	ax.tick_params(labelsize = 20)
 
-	x_step = 0.2 ;
+	if fit && curve == :all
+		x_step = 0.2 ;
 
-	figure()
-	ax = gca()
+		figure()
+		ax = gca()
 
-	plot(1.0:length(bic_2_v), bic_2_v, color = "blue", linestyle = "", marker = "o", markersize = 15, 
-									label = "BIC")
-	plot((1.0:length(aic_2_v)) .+ x_step, aic_2_v, color = "red", linestyle = "", marker = "o", markersize = 15, 
-									label = "AIC")
+		plot(1.0:length(bic_2_v), bic_2_v, color = "blue", linestyle = "", marker = "o", markersize = 15, 
+										label = "BIC")
+		plot((1.0:length(aic_2_v)) .+ x_step, aic_2_v, color = "red", linestyle = "", marker = "o", markersize = 15, 
+										label = "AIC")
 
-	ax.set_xticks((1.0:length(bic_2_v)) .+ x_step/2.0)
-	ax.set_xticklabels(["log 1 std", "log 2 std", "log std offset", "log std 2 offsets", "sigmoid", "sigmoid w/o bounds"])
-	ax.tick_params(labelsize = 20)
+		ax.set_xticks((1.0:length(bic_2_v)) .+ x_step/2.0)
+		ax.set_xticklabels(["log 1 std", "log 2 std", "log std offset", "log std 2 offsets", "sigmoid", "sigmoid w/o bounds"])
+		ax.tick_params(labelsize = 20)
 
-	legend(fontsize = 20, frameon = false)
-	title("High reward responses", fontsize = 20)
+		legend(fontsize = 20, frameon = false)
+		title("High reward responses", fontsize = 20)
 
-	figure()	
-	ax = gca()
+		figure()	
+		ax = gca()
 
-	plot(1.0:length(bic_8_v), bic_8_v, color = "blue", linestyle = "", marker = "o", markersize = 15,
-									label = "BIC")
-	plot((1.0:length(aic_8_v)) .+ 0.2, aic_8_v, color = "red", linestyle = "", marker = "o", markersize = 15,
-									label = "AIC")
+		plot(1.0:length(bic_8_v), bic_8_v, color = "blue", linestyle = "", marker = "o", markersize = 15,
+										label = "BIC")
+		plot((1.0:length(aic_8_v)) .+ 0.2, aic_8_v, color = "red", linestyle = "", marker = "o", markersize = 15,
+										label = "AIC")
 
-	ax.set_xticks((1.0:length(bic_8_v)) .+ x_step/2.0)
-	ax.set_xticklabels(["log 1 std", "log 2 std", "log std offset", "log std 2 offsets", "sigmoid", "sigmoid w/o bounds"])
-	ax.tick_params(labelsize = 20)
+		ax.set_xticks((1.0:length(bic_8_v)) .+ x_step/2.0)
+		ax.set_xticklabels(["log 1 std", "log 2 std", "log std offset", "log std 2 offsets", "sigmoid", "sigmoid w/o bounds"])
+		ax.tick_params(labelsize = 20)
 
-	legend(fontsize = 20, frameon = false)
-	title("Low reward responses", fontsize = 20)
+		legend(fontsize = 20, frameon = false)
+		title("Low reward responses", fontsize = 20)
+	end
 	#=
 	figure()
 	ax = gca()

@@ -14,11 +14,11 @@ include("fit.jl")
 
 session_to_analyse = :probe ;
 write_flag = false ;
-path = "./ch14/multiple amb/1st session/"
+path = "./probe/baseline/"
 
 subj_v = klimb_read(path, session_to_analyse, write_flag)
 
-plot_psychometric(subj_v, fit = true, curve = :all)
+plot_psychometric(subj_v, -1, 2, -1, fit = false, curve = :all)
 
 #plot_rt_prev(subj_v)
 
