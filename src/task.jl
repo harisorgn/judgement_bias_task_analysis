@@ -51,7 +51,7 @@ function task(sigma::Float64, beta::Float64, c_win::Float64, c_loss::Float64)
 	return (tone_v, response_v, rt_v)	
 end
 
-function trial_fit(sigma::Float64, beta::Float64, c_win::Float64, c_loss::Float64,
+function trial_fit(sigma::Float64, sigma_tone::Float64, beta::Float64, c_win::Float64,
 					r_w::Float64, tone::Int64)
 	
 	p_2_v = Array{Float64,1}(undef, Int64(rt_max / dt) + 1) ;
@@ -60,18 +60,23 @@ function trial_fit(sigma::Float64, beta::Float64, c_win::Float64, c_loss::Float6
 
 	rng = MersenneTwister(1234);
 
-	lhood_2 = Normal(log(2.0), sigma) ;
-	lhood_8 = Normal(log(8.0), sigma) ;
+	#lhood_2 = Normal(log(2.0), sqrt(dt) * sigma) ;
+	#lhood_8 = Normal(log(8.0), sqrt(dt) * sigma) ;
+
+	lhood_2 = Normal(2.0, sqrt(dt) * sigma) ;
+	lhood_8 = Normal(8.0, sqrt(dt) * sigma) ;
 
 	if tone == 2 
-		p_x = p_x_2 ;
+		#p_x = Normal(log(2.0), sqrt(dt) * sigma_tone) ;
+		p_x = Normal(2.0, sqrt(dt) * sigma_tone) ;
 	elseif tone == 8 
-		p_x = p_x_8 ;
+		#p_x = Normal(log(8.0), sqrt(dt) * sigma_tone) ;
+		p_x = Normal(8.0, sqrt(dt) * sigma_tone) ;
 	else
-		p_x = p_x_amb ;
+		#p_x = Normal(log(5.0), sqrt(dt) * sigma_tone) ;
+		p_x = Normal(5.0, sqrt(dt) * sigma_tone) ;
 	end
 
-	rt = 0.0 ;
 	a = 0 ;
 	p_post_2 = 0.5 ;
 	p_post_8 = 0.5 ;
