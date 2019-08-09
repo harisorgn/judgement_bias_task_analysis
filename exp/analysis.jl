@@ -7,6 +7,115 @@ struct subj_psycho_t
 	conditioned_reward::Int64
 end
 
+function run_dr(dr_d::Dict{String, Array{Float64}})
+
+	dr_m = Matrix{Float64}(undef, length(dr_d[collect(keys(dr_d))[1]]), length(collect(keys(dr_d)))) ;
+	i = 1 ;
+
+	for k in keys(dr_d)
+		dr_m[:, i] = dr_d[k] ;
+		i += 1 ;
+	end
+
+	M = fit(PCA, dr_m) ;
+
+	y = transform(M, dr_m) ;
+
+	vars = principalvars(M) ;
+
+	figure()
+	ax = gca()
+
+	scatter3D(y[1,:], y[2,:] / (vars[1] / vars[2]), y[3,:] / (vars[1] / vars[3]))
+
+	show()
+
+end
+
+function get_dimensionality_reduction_subj(subj::subj_t)
+
+	HH = count(x -> x == true, map((y,z) -> y == 2 && z == 2, subj.tone_v, subj.response_v)) /
+		 count(x -> x == true, map((y,z) -> y == 2 && z != 0, subj.tone_v, subj.response_v)) ;
+
+	HH_RT = mean(subj.rt_v[map((y,z) -> y == 2 && z == 2, subj.tone_v, subj.response_v)]) ;
+
+	HL = count(x -> x == true, map((y,z) -> y == 2 && z == 8, subj.tone_v, subj.response_v)) /
+		 count(x -> x == true, map((y,z) -> y == 2 && z != 0, subj.tone_v, subj.response_v)) ;
+	HL_RT = mean(subj.rt_v[map((y,z) -> y == 2 && z == 8, subj.tone_v, subj.response_v)]) ;
+
+	MH = count(x -> x == true, map((y,z) -> y == 5 && z == 2, subj.tone_v, subj.response_v)) /
+		 count(x -> x == true, map((y,z) -> y == 5 && z != 0, subj.tone_v, subj.response_v)) ;
+	MH_RT = mean(subj.rt_v[map((y,z) -> y == 5 && z == 2, subj.tone_v, subj.response_v)]) ;
+
+	ML = count(x -> x == true, map((y,z) -> y == 5 && z == 8, subj.tone_v, subj.response_v)) /
+		 count(x -> x == true, map((y,z) -> y == 5 && z != 0, subj.tone_v, subj.response_v)) ;
+	ML_RT = mean(subj.rt_v[map((y,z) -> y == 5 && z == 8, subj.tone_v, subj.response_v)]) ;
+
+	LH = count(x -> x == true, map((y,z) -> y == 8 && z == 2, subj.tone_v, subj.response_v)) /
+		 count(x -> x == true, map((y,z) -> y == 8 && z != 0, subj.tone_v, subj.response_v)) ;
+	LH_RT = mean(subj.rt_v[map((y,z) -> y == 8 && z == 2, subj.tone_v, subj.response_v)]) ;
+
+	LL = count(x -> x == true, map((y,z) -> y == 8 && z == 8, subj.tone_v, subj.response_v)) /
+		 count(x -> x == true, map((y,z) -> y == 8 && z != 0, subj.tone_v, subj.response_v)) ;
+	LL_RT = mean(subj.rt_v[map((y,z) -> y == 8 && z == 8, subj.tone_v, subj.response_v)]) ;
+
+	Om_H = count(x -> x == true, map((y,z) -> y == 2 && z == 0, subj.tone_v, subj.response_v)) /
+		 count(x -> x == true, map(y -> y == 2, subj.tone_v)) ;
+	Om_M = count(x -> x == true, map((y,z) -> y == 5 && z == 0, subj.tone_v, subj.response_v)) /
+		 count(x -> x == true, map(y -> y == 5, subj.tone_v)) ;
+	Om_L = count(x -> x == true, map((y,z) -> y == 8 && z == 0, subj.tone_v, subj.response_v)) /
+		 count(x -> x == true, map(y -> y == 8, subj.tone_v)) ;
+
+	Prem = count(x -> x == true, map((y,z) -> y == 0 && z != 0, subj.tone_v, subj.response_v)) /
+		 length(subj.tone_v) ;
+
+	switch_d = get_switch_after_incorr([subj]) ;
+	switch_after_incorr = switch_d[subj.id][1] ;
+
+	same_d = get_same_after_corr([subj]) ;
+	same_after_corr = same_d[subj.id][1] ;
+
+	return [HH, HH_RT, MH, MH_RT, ML_RT, LL, LL_RT, 
+			Om_H, Om_M, Om_L, switch_after_incorr, same_after_corr]
+
+end
+
+function get_dimensionality_reduction_d(subj_v::Array{subj_t, 1})
+
+	considered_subj_v = Array{String, 1}() ;
+	dr_d = Dict{String, Array{Float64}}() ;
+	n_dr_dims = 0 ;
+
+	for subj in subj_v
+		if count(x -> x == subj.id, considered_subj_v) == 1
+			dr_v = get_dimensionality_reduction_subj(subj) ;
+
+			if !any(isnan.(dr_v))
+				append!(dr_d[subj.id], dr_v) ;
+				n_dr_dims = length(dr_d[subj.id]) ;
+			end
+
+			push!(considered_subj_v, subj.id) ;
+
+		elseif count(x -> x == subj.id, considered_subj_v) == 0 && !(subj.id in exclude_v)
+			dr_v = get_dimensionality_reduction_subj(subj) ;
+			
+			if !any(isnan.(dr_v))
+				dr_d[subj.id] = dr_v ;
+				push!(considered_subj_v, subj.id) ;
+			end
+		end
+	end
+
+	for k in keys(dr_d)
+		if length(dr_d[k]) != n_dr_dims
+			delete!(dr_d, k) ;
+		end
+	end
+
+	return dr_d
+end
+
 function get_switch_after_incorr(subj_v::Array{subj_t,1})
 
 	dict = Dict{String, Tuple{Float64, Float64, Float64, Float64, Int64, Int64, Int64}}() ;
@@ -28,7 +137,7 @@ function get_switch_after_incorr(subj_v::Array{subj_t,1})
 				for i = 2 : length(subj_v[idx].response_v)
 					if subj_v[idx].reward_v[i-1] == 0 && subj_v[idx].tone_v[i] == 5 && 
 						subj_v[idx].response_v[i-1] != 0 && subj_v[idx].response_v[i] != 0 &&
-						subj_v[idx].tone_v[i-1] != 0 && subj_v[idx].tone_v[i-1] != 5
+						subj_v[idx].tone_v[i-1] != 0 #&& subj_v[idx].tone_v[i-1] != 5
 
 						n_incorr_before_p += 1 ;
 						if subj_v[idx].response_v[i] != subj_v[idx].response_v[i-1]

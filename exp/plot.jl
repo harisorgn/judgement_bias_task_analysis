@@ -189,6 +189,8 @@ function plot_rt(subj_v::Array{subj_t,1})
 	errorbar(2, mean(rt_MH_v), fmt = "C1D", markersize = 10, capsize = 10)
 	errorbar(3, mean(rt_ML_v[map(x->!isnan(x), rt_ML_v)]), fmt = "C2D", markersize = 10, capsize = 10)
 	errorbar(4, mean(rt_LL_v), fmt = "C3D", markersize = 10, capsize = 10)
+
+	show()
 end
 
 function plot_rt_prev(subj_v::Array{subj_t,1})
@@ -402,8 +404,8 @@ function plot_psychometric(subj_v::Array{subj_t,1}, conditioned_tone::Int64,
 
 	#x_data = [2.0, 4.5, 4.75, 5.25, 5.5, 8.0] ;
 	#x_data = [2.0, 4.0, 5.0, 6.0, 8.0] ;
-	#x_data = [2.0, 5.0, 5.5, 6.0, 9.0] ;
-	x_data = [2.0, 5.0, 8.0] ;
+	x_data = [2.0, 5.0, 5.5, 6.0, 9.0] ;
+	#x_data = [2.0, 5.0, 8.0] ;
 
 	bic_2_v = Array{Float64,1}() ;
 	aic_2_v = Array{Float64,1}() ;
@@ -420,7 +422,7 @@ function plot_psychometric(subj_v::Array{subj_t,1}, conditioned_tone::Int64,
 
 		i += 1 ;
 	end
-
+	
 	figure()
 	ax = gca()
 
