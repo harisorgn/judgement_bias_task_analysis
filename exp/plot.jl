@@ -1,5 +1,43 @@
 using PyPlot
 
+function plot_rr(subj_v::Array{subj_t,1}, n_trials_in_the_past::Int64)
+
+	rr_v = Array{Float64,1}() ;
+	rt_v = Array{Float64,1}() ;
+	mask_MH = Array{Bool,1}() ;
+	mask_ML = Array{Bool,1}() ;
+
+	for subj in subj_v
+		
+		push!(rr_v, 0.0)
+
+		for i = 2 : n_trials_in_the_past
+			push!(rr_v, sum(subj.reward_v[1:i-1]) / sum(subj.rt_v[1:i-1])) ;
+		end
+
+		for i = n_trials_in_the_past + 1 : length(subj.tone_v)
+			push!(rr_v, sum(subj.reward_v[i - n_trials_in_the_past : i - 1]) / 
+						sum(subj.rt_v[i - n_trials_in_the_past : i - 1])) ;
+		end
+		append!(rt_v, subj.rt_v) ;
+		append!(mask_MH, map((x,y) -> x == 5 && y == 2, subj.tone_v, subj.response_v)) ;
+		append!(mask_ML, map((x,y) -> x == 5 && y == 8, subj.tone_v, subj.response_v)) ;
+		#append!(mask_MH, map((x,y) -> x == 3 || x == 4 || x == 6 || x == 7 && y == 2, 
+		#				subj.tone_v, subj.response_v)) ;
+		#append!(mask_ML, map((x,y) -> x == 3 || x == 4 || x == 6 || x == 7 && y == 8, 
+		#				subj.tone_v, subj.response_v)) ;
+	end
+
+	figure()
+	ax = gca()
+
+	plot(rr_v[mask_MH], rt_v[mask_MH], "*r")
+	plot(rr_v[mask_ML], rt_v[mask_ML], "*b")
+
+	show()
+
+end
+
 function plot_switch(subj_v::Array{subj_t,1})
 
 	switch_d = get_switch_after_incorr(subj_v) ;
@@ -193,7 +231,7 @@ function plot_rt(subj_v::Array{subj_t,1})
 	show()
 end
 
-function plot_rt_prev(subj_v::Array{subj_t,1})
+function plot_rt_prev_tone(subj_v::Array{subj_t,1})
 
 	rt_MH_H_v = Array{Float64,1}() ;
 	rt_MH_M_v = Array{Float64,1}() ;
@@ -306,11 +344,11 @@ function plot_rt_prev(subj_v::Array{subj_t,1})
 	scatter(fill(x_ticks[2],length(rt_HH_M_v)), rt_HH_M_v, color = "blue", alpha = 0.3) ;
 	scatter(fill(x_ticks[3],length(rt_HH_L_v)), rt_HH_L_v, color = "green", alpha = 0.3) ;
 
-	errorbar(x_ticks[1], mean(rt_HH_H_v[map(x->!isnan(x), rt_HH_H_v)]), yerr = std(rt_HH_H_v[map(x->!isnan(x), rt_HH_H_v)]), 
+	errorbar(x_ticks[1], mean(rt_HH_H_v[map(x->!isnan(x), rt_HH_H_v)]), yerr = std(rt_HH_H_v[map(x->!isnan(x), rt_HH_H_v)]) / sqrt(length(rt_HH_H_v[map(x->!isnan(x), rt_HH_H_v)])), 
 				marker = "D", markersize = 10, capsize = 10, color = "red")
-	errorbar(x_ticks[2], mean(rt_HH_M_v[map(x->!isnan(x), rt_HH_M_v)]), yerr = std(rt_HH_M_v[map(x->!isnan(x), rt_HH_M_v)]), 
+	errorbar(x_ticks[2], mean(rt_HH_M_v[map(x->!isnan(x), rt_HH_M_v)]), yerr = std(rt_HH_M_v[map(x->!isnan(x), rt_HH_M_v)]) / sqrt(length(rt_HH_M_v[map(x->!isnan(x), rt_HH_M_v)])), 
 				marker = "D", markersize = 10, capsize = 10, color = "blue")
-	errorbar(x_ticks[3], mean(rt_HH_L_v[map(x->!isnan(x), rt_HH_L_v)]), yerr = std(rt_HH_L_v[map(x->!isnan(x), rt_HH_L_v)]), 
+	errorbar(x_ticks[3], mean(rt_HH_L_v[map(x->!isnan(x), rt_HH_L_v)]), yerr = std(rt_HH_L_v[map(x->!isnan(x), rt_HH_L_v)]) / sqrt(length(rt_HH_L_v[map(x->!isnan(x), rt_HH_L_v)])), 
 				marker = "D", markersize = 10, capsize = 10, color = "green")
 
 	x_ticks .+= 3.0 ;
@@ -318,11 +356,11 @@ function plot_rt_prev(subj_v::Array{subj_t,1})
 	scatter(fill(x_ticks[2],length(rt_HL_M_v)), rt_HL_M_v, color = "blue", alpha = 0.3) ;
 	scatter(fill(x_ticks[3],length(rt_HL_L_v)), rt_HL_L_v, color = "green", alpha = 0.3) ;
 
-	errorbar(x_ticks[1], mean(rt_HL_H_v[map(x->!isnan(x), rt_HL_H_v)]), yerr = std(rt_HL_H_v[map(x->!isnan(x), rt_HL_H_v)]), 
+	errorbar(x_ticks[1], mean(rt_HL_H_v[map(x->!isnan(x), rt_HL_H_v)]), yerr = std(rt_HL_H_v[map(x->!isnan(x), rt_HL_H_v)]) / sqrt(length(rt_HL_H_v[map(x->!isnan(x), rt_HL_H_v)])), 
 				marker = "D", markersize = 10, capsize = 10, color = "red")
-	errorbar(x_ticks[2], mean(rt_HL_M_v[map(x->!isnan(x), rt_HL_M_v)]), yerr = std(rt_HL_M_v[map(x->!isnan(x), rt_HL_M_v)]), 
+	errorbar(x_ticks[2], mean(rt_HL_M_v[map(x->!isnan(x), rt_HL_M_v)]), yerr = std(rt_HL_M_v[map(x->!isnan(x), rt_HL_M_v)]) / sqrt(length(rt_HL_M_v[map(x->!isnan(x), rt_HL_M_v)])), 
 				marker = "D", markersize = 10, capsize = 10, color = "blue")
-	errorbar(x_ticks[3], mean(rt_HL_L_v[map(x->!isnan(x), rt_HL_L_v)]), yerr = std(rt_HL_L_v[map(x->!isnan(x), rt_HL_L_v)]), 
+	errorbar(x_ticks[3], mean(rt_HL_L_v[map(x->!isnan(x), rt_HL_L_v)]), yerr = std(rt_HL_L_v[map(x->!isnan(x), rt_HL_L_v)]) / sqrt(length(rt_HL_L_v[map(x->!isnan(x), rt_HL_L_v)])), 
 				marker = "D", markersize = 10, capsize = 10, color = "green")
 
 	x_ticks .+= 3.0 ;
@@ -330,11 +368,11 @@ function plot_rt_prev(subj_v::Array{subj_t,1})
 	scatter(fill(x_ticks[2],length(rt_MH_M_v)), rt_MH_M_v, color = "blue", alpha = 0.3) ;
 	scatter(fill(x_ticks[3],length(rt_MH_L_v)), rt_MH_L_v, color = "green", alpha = 0.3) ;
 
-	errorbar(x_ticks[1], mean(rt_MH_H_v[map(x->!isnan(x), rt_MH_H_v)]), yerr = std(rt_MH_H_v[map(x->!isnan(x), rt_MH_H_v)]), 
+	errorbar(x_ticks[1], mean(rt_MH_H_v[map(x->!isnan(x), rt_MH_H_v)]), yerr = std(rt_MH_H_v[map(x->!isnan(x), rt_MH_H_v)]) / sqrt(length(rt_MH_H_v[map(x->!isnan(x), rt_MH_H_v)])), 
 				marker = "D", markersize = 10, capsize = 10, color = "red")
-	errorbar(x_ticks[2], mean(rt_MH_M_v[map(x->!isnan(x), rt_MH_M_v)]), yerr = std(rt_MH_M_v[map(x->!isnan(x), rt_MH_M_v)]), 
+	errorbar(x_ticks[2], mean(rt_MH_M_v[map(x->!isnan(x), rt_MH_M_v)]), yerr = std(rt_MH_M_v[map(x->!isnan(x), rt_MH_M_v)]) / sqrt(length(rt_MH_M_v[map(x->!isnan(x), rt_MH_M_v)])), 
 				marker = "D", markersize = 10, capsize = 10, color = "blue")
-	errorbar(x_ticks[3], mean(rt_MH_L_v[map(x->!isnan(x), rt_MH_L_v)]), yerr = std(rt_MH_L_v[map(x->!isnan(x), rt_MH_L_v)]), 
+	errorbar(x_ticks[3], mean(rt_MH_L_v[map(x->!isnan(x), rt_MH_L_v)]), yerr = std(rt_MH_L_v[map(x->!isnan(x), rt_MH_L_v)]) / sqrt(length(rt_MH_L_v[map(x->!isnan(x), rt_MH_L_v)])), 
 				marker = "D", markersize = 10, capsize = 10, color = "green")
 
 	x_ticks .+= 3.0 ;
@@ -342,11 +380,11 @@ function plot_rt_prev(subj_v::Array{subj_t,1})
 	scatter(fill(x_ticks[2],length(rt_ML_M_v)), rt_ML_M_v, color = "blue", alpha = 0.3) ;
 	scatter(fill(x_ticks[3],length(rt_ML_L_v)), rt_ML_L_v, color = "green", alpha = 0.3) ;
 
-	errorbar(x_ticks[1], mean(rt_ML_H_v[map(x->!isnan(x), rt_ML_H_v)]), yerr = std(rt_ML_H_v[map(x->!isnan(x), rt_ML_H_v)]), 
+	errorbar(x_ticks[1], mean(rt_ML_H_v[map(x->!isnan(x), rt_ML_H_v)]), yerr = std(rt_ML_H_v[map(x->!isnan(x), rt_ML_H_v)]) / sqrt(length(rt_ML_H_v[map(x->!isnan(x), rt_ML_H_v)])), 
 				marker = "D", markersize = 10, capsize = 10, color = "red")
-	errorbar(x_ticks[2], mean(rt_ML_M_v[map(x->!isnan(x), rt_ML_M_v)]), yerr = std(rt_ML_M_v[map(x->!isnan(x), rt_ML_M_v)]), 
+	errorbar(x_ticks[2], mean(rt_ML_M_v[map(x->!isnan(x), rt_ML_M_v)]), yerr = std(rt_ML_M_v[map(x->!isnan(x), rt_ML_M_v)]) / sqrt(length(rt_ML_M_v[map(x->!isnan(x), rt_ML_M_v)])), 
 				marker = "D", markersize = 10, capsize = 10, color = "blue")
-	errorbar(x_ticks[3], mean(rt_ML_L_v[map(x->!isnan(x), rt_ML_L_v)]), yerr = std(rt_ML_L_v[map(x->!isnan(x), rt_ML_L_v)]), 
+	errorbar(x_ticks[3], mean(rt_ML_L_v[map(x->!isnan(x), rt_ML_L_v)]), yerr = std(rt_ML_L_v[map(x->!isnan(x), rt_ML_L_v)]) / sqrt(length(rt_ML_L_v[map(x->!isnan(x), rt_ML_L_v)])), 
 				marker = "D", markersize = 10, capsize = 10, color = "green")
 
 	x_ticks .+= 3.0 ;
@@ -354,11 +392,11 @@ function plot_rt_prev(subj_v::Array{subj_t,1})
 	scatter(fill(x_ticks[2],length(rt_LH_M_v)), rt_LH_M_v, color = "blue", alpha = 0.3) ;
 	scatter(fill(x_ticks[3],length(rt_LH_L_v)), rt_LH_L_v, color = "green", alpha = 0.3) ;
 
-	errorbar(x_ticks[1], mean(rt_LH_H_v[map(x->!isnan(x), rt_LH_H_v)]), yerr = std(rt_LH_H_v[map(x->!isnan(x), rt_LH_H_v)]), 
+	errorbar(x_ticks[1], mean(rt_LH_H_v[map(x->!isnan(x), rt_LH_H_v)]), yerr = std(rt_LH_H_v[map(x->!isnan(x), rt_LH_H_v)]) / sqrt(length(rt_LH_H_v[map(x->!isnan(x), rt_LH_H_v)])), 
 				marker = "D", markersize = 10, capsize = 10, color = "red")
-	errorbar(x_ticks[2], mean(rt_LH_M_v[map(x->!isnan(x), rt_LH_M_v)]), yerr = std(rt_LH_M_v[map(x->!isnan(x), rt_LH_M_v)]), 
+	errorbar(x_ticks[2], mean(rt_LH_M_v[map(x->!isnan(x), rt_LH_M_v)]), yerr = std(rt_LH_M_v[map(x->!isnan(x), rt_LH_M_v)]) / sqrt(length(rt_LH_M_v[map(x->!isnan(x), rt_LH_M_v)])), 
 				marker = "D", markersize = 10, capsize = 10, color = "blue")
-	errorbar(x_ticks[3], mean(rt_LH_L_v[map(x->!isnan(x), rt_LH_L_v)]), yerr = std(rt_LH_L_v[map(x->!isnan(x), rt_LH_L_v)]), 
+	errorbar(x_ticks[3], mean(rt_LH_L_v[map(x->!isnan(x), rt_LH_L_v)]), yerr = std(rt_LH_L_v[map(x->!isnan(x), rt_LH_L_v)]) / sqrt(length(rt_LH_L_v[map(x->!isnan(x), rt_LH_L_v)])), 
 				marker = "D", markersize = 10, capsize = 10, color = "green")
 
 	x_ticks .+= 3.0 ;
@@ -366,11 +404,11 @@ function plot_rt_prev(subj_v::Array{subj_t,1})
 	scatter(fill(x_ticks[2],length(rt_LL_M_v)), rt_LL_M_v, color = "blue", alpha = 0.3, label = "Mid previous") ;
 	scatter(fill(x_ticks[3],length(rt_LL_L_v)), rt_LL_L_v, color = "green", alpha = 0.3, label = "Low previous") ;
 
-	errorbar(x_ticks[1], mean(rt_LL_H_v[map(x->!isnan(x), rt_LL_H_v)]), yerr = std(rt_LL_H_v[map(x->!isnan(x), rt_LL_H_v)]), 
+	errorbar(x_ticks[1], mean(rt_LL_H_v[map(x->!isnan(x), rt_LL_H_v)]), yerr = std(rt_LL_H_v[map(x->!isnan(x), rt_LL_H_v)]) / sqrt(length(rt_LL_H_v[map(x->!isnan(x), rt_LL_H_v)])), 
 				marker = "D", markersize = 10, capsize = 10, color = "red")
-	errorbar(x_ticks[2], mean(rt_LL_M_v[map(x->!isnan(x), rt_LL_M_v)]), yerr = std(rt_LL_M_v[map(x->!isnan(x), rt_LL_M_v)]), 
+	errorbar(x_ticks[2], mean(rt_LL_M_v[map(x->!isnan(x), rt_LL_M_v)]), yerr = std(rt_LL_M_v[map(x->!isnan(x), rt_LL_M_v)]) / sqrt(length(rt_LL_M_v[map(x->!isnan(x), rt_LL_M_v)])), 
 				marker = "D", markersize = 10, capsize = 10, color = "blue")
-	errorbar(x_ticks[3], mean(rt_LL_L_v[map(x->!isnan(x), rt_LL_L_v)]), yerr = std(rt_LL_L_v[map(x->!isnan(x), rt_LL_L_v)]), 
+	errorbar(x_ticks[3], mean(rt_LL_L_v[map(x->!isnan(x), rt_LL_L_v)]), yerr = std(rt_LL_L_v[map(x->!isnan(x), rt_LL_L_v)]) / sqrt(length(rt_LL_L_v[map(x->!isnan(x), rt_LL_L_v)])), 
 				marker = "D", markersize = 10, capsize = 10, color = "green")
 
 	ax[:set_xticks]([x_ticks[2] - 5.0*3.0, x_ticks[2] - 4.0*3.0, x_ticks[2] - 3.0*3.0, 
@@ -381,6 +419,418 @@ function plot_rt_prev(subj_v::Array{subj_t,1})
 	ax[:tick_params](labelsize = 16)
 	ylabel("Response latency [s]", fontsize = 16)
 	legend(fontsize = 16)
+	show()
+end
+
+function plot_resp_rt_prev_reward(subj_v::Array{subj_t,1})
+
+	rt_MH_4_v = Array{Float64,1}() ;
+	rt_MH_0_v = Array{Float64,1}() ;
+	rt_MH_1_v = Array{Float64,1}() ;
+	rt_ML_4_v = Array{Float64,1}() ;
+	rt_ML_0_v = Array{Float64,1}() ;
+	rt_ML_1_v = Array{Float64,1}() ;
+	rt_HH_4_v = Array{Float64,1}() ;
+	rt_HH_0_v = Array{Float64,1}() ;
+	rt_HH_1_v = Array{Float64,1}() ;
+	rt_HL_4_v = Array{Float64,1}() ;
+	rt_HL_0_v = Array{Float64,1}() ;
+	rt_HL_1_v = Array{Float64,1}() ;
+	rt_LH_4_v = Array{Float64,1}() ;
+	rt_LH_0_v = Array{Float64,1}() ;
+	rt_LH_1_v = Array{Float64,1}() ;
+	rt_LL_4_v = Array{Float64,1}() ;
+	rt_LL_0_v = Array{Float64,1}() ;
+	rt_LL_1_v = Array{Float64,1}() ;
+
+	press_MH_4_v = Array{Float64,1}() ;
+	press_MH_0_v = Array{Float64,1}() ;
+	press_MH_1_v = Array{Float64,1}() ;
+	press_ML_4_v = Array{Float64,1}() ;
+	press_ML_0_v = Array{Float64,1}() ;
+	press_ML_1_v = Array{Float64,1}() ;
+	press_HH_4_v = Array{Float64,1}() ;
+	press_HH_0_v = Array{Float64,1}() ;
+	press_HH_1_v = Array{Float64,1}() ;
+	press_HL_4_v = Array{Float64,1}() ;
+	press_HL_0_v = Array{Float64,1}() ;
+	press_HL_1_v = Array{Float64,1}() ;
+	press_LH_4_v = Array{Float64,1}() ;
+	press_LH_0_v = Array{Float64,1}() ;
+	press_LH_1_v = Array{Float64,1}() ;
+	press_LL_4_v = Array{Float64,1}() ;
+	press_LL_0_v = Array{Float64,1}() ;
+	press_LL_1_v = Array{Float64,1}() ;
+
+	subj_v_first = Array{subj_t,1}() ;
+	subj_v_second = Array{subj_t,1}() ;
+
+	for subj in subj_v
+		push!(subj_v_first, subj_t(subj.id, 
+				subj.response_v[1:Int64(floor(length(subj.response_v)/2))], 
+				subj.reward_v[1:Int64(floor(length(subj.reward_v)/2))], 
+				subj.tone_v[1:Int64(floor(length(subj.tone_v)/2))], 
+				subj.rt_v[1:Int64(floor(length(subj.rt_v)/2))], 
+				subj.cbi)) ;
+
+		push!(subj_v_second, subj_t(subj.id, 
+				subj.response_v[Int64(floor(length(subj.response_v)/2)) + 1 : end], 
+				subj.reward_v[Int64(floor(length(subj.reward_v)/2)) + 1 : end], 
+				subj.tone_v[Int64(floor(length(subj.tone_v)/2)) + 1 : end], 
+				subj.rt_v[Int64(floor(length(subj.rt_v)/2)) + 1 : end], 
+				subj.cbi)) ;
+	end
+
+
+	for subj in subj_v_second
+
+		# mask_Current tone Current response_Previous reward
+
+		mask_MH_4 = map((x,y,z,k) -> x == 5 && y == 2 && z == 4 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.reward_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_MH_0 = map((x,y,z,k) -> x == 5 && y == 2 && z == 0 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.reward_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_MH_1 = map((x,y,z,k) -> x == 5 && y == 2 && z == 1 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.reward_v[1:end-1], subj.response_v[1:end-1]) ;
+
+		mask_ML_4 = map((x,y,z,k) -> x == 5 && y == 8 && z == 4 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.reward_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_ML_0 = map((x,y,z,k) -> x == 5 && y == 8 && z == 0 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.reward_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_ML_1 = map((x,y,z,k) -> x == 5 && y == 8 && z == 1 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.reward_v[1:end-1], subj.response_v[1:end-1]) ;
+
+		mask_HH_4 = map((x,y,z,k) -> x == 2 && y == 2 && z == 4 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.reward_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_HH_0 = map((x,y,z,k) -> x == 2 && y == 2 && z == 0 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.reward_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_HH_1 = map((x,y,z,k) -> x == 2 && y == 2 && z == 1 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.reward_v[1:end-1], subj.response_v[1:end-1]) ;
+
+		mask_HL_4 = map((x,y,z,k) -> x == 2 && y == 8 && z == 4 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.reward_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_HL_0 = map((x,y,z,k) -> x == 2 && y == 8 && z == 0 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.reward_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_HL_1 = map((x,y,z,k) -> x == 2 && y == 8 && z == 1 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.reward_v[1:end-1], subj.response_v[1:end-1]) ;
+
+		mask_LH_4 = map((x,y,z,k) -> x == 8 && y == 2 && z == 4 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.reward_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_LH_0 = map((x,y,z,k) -> x == 8 && y == 2 && z == 0 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.reward_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_LH_1 = map((x,y,z,k) -> x == 8 && y == 2 && z == 1 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.reward_v[1:end-1], subj.response_v[1:end-1]) ;
+
+		mask_LL_4 = map((x,y,z,k) -> x == 8 && y == 8 && z == 4 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.reward_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_LL_0 = map((x,y,z,k) -> x == 8 && y == 8 && z == 0 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.reward_v[1:end-1], subj.response_v[1:end-1]) ;
+		mask_LL_1 = map((x,y,z,k) -> x == 8 && y == 8 && z == 1 && k != 0, 
+			subj.tone_v[2:end], subj.response_v[2:end], subj.reward_v[1:end-1], subj.response_v[1:end-1]) ;
+		
+		pushfirst!(mask_MH_4, false) ;
+		pushfirst!(mask_MH_0, false) ;
+		pushfirst!(mask_MH_1, false) ;
+		pushfirst!(mask_ML_4, false) ;
+		pushfirst!(mask_ML_0, false) ;
+		pushfirst!(mask_ML_1, false) ;
+		pushfirst!(mask_HH_4, false) ;
+		pushfirst!(mask_HH_0, false) ;
+		pushfirst!(mask_HH_1, false) ;
+		pushfirst!(mask_HL_4, false) ;
+		pushfirst!(mask_HL_0, false) ;
+		pushfirst!(mask_HL_1, false) ;
+		pushfirst!(mask_LH_4, false) ;
+		pushfirst!(mask_LH_0, false) ;
+		pushfirst!(mask_LH_1, false) ;
+		pushfirst!(mask_LL_4, false) ;
+		pushfirst!(mask_LL_0, false) ;
+		pushfirst!(mask_LL_1, false) ;		
+
+		push!(press_MH_4_v, 100.0*length(subj.response_v[mask_MH_4]) / 
+						(length(subj.response_v[mask_MH_4]) + length(subj.response_v[mask_MH_0]) + length(subj.response_v[mask_MH_1]))) ;
+		push!(press_MH_0_v, 100.0*length(subj.response_v[mask_MH_0]) / 
+						(length(subj.response_v[mask_MH_4]) + length(subj.response_v[mask_MH_0]) + length(subj.response_v[mask_MH_1]))) ;
+		push!(press_MH_1_v, 100.0*length(subj.response_v[mask_MH_1]) / 
+						(length(subj.response_v[mask_MH_4]) + length(subj.response_v[mask_MH_0]) + length(subj.response_v[mask_MH_1]))) ;
+
+		push!(press_ML_4_v, 100.0*length(subj.response_v[mask_ML_4]) / 
+						(length(subj.response_v[mask_ML_4]) + length(subj.response_v[mask_ML_0]) + length(subj.response_v[mask_ML_1]))) ;
+		push!(press_ML_0_v, 100.0*length(subj.response_v[mask_ML_0]) / 
+						(length(subj.response_v[mask_ML_4]) + length(subj.response_v[mask_ML_0]) + length(subj.response_v[mask_ML_1]))) ;
+		push!(press_ML_1_v, 100.0*length(subj.response_v[mask_ML_1]) / 
+						(length(subj.response_v[mask_ML_4]) + length(subj.response_v[mask_ML_0]) + length(subj.response_v[mask_ML_1]))) ;
+
+		push!(press_HH_4_v, 100.0*length(subj.response_v[mask_HH_4]) / 
+						(length(subj.response_v[mask_HH_4]) + length(subj.response_v[mask_HH_0]) + length(subj.response_v[mask_HH_1]))) ;
+		push!(press_HH_0_v, 100.0*length(subj.response_v[mask_HH_0]) / 
+						(length(subj.response_v[mask_HH_4]) + length(subj.response_v[mask_HH_0]) + length(subj.response_v[mask_HH_1]))) ;
+		push!(press_HH_1_v, 100.0*length(subj.response_v[mask_HH_1]) / 
+						(length(subj.response_v[mask_HH_4]) + length(subj.response_v[mask_HH_0]) + length(subj.response_v[mask_HH_1]))) ;
+
+		push!(press_HL_4_v, 100.0*length(subj.response_v[mask_HL_4]) / 
+						(length(subj.response_v[mask_HL_4]) + length(subj.response_v[mask_HL_0]) + length(subj.response_v[mask_HL_1]))) ;
+		push!(press_HL_0_v, 100.0*length(subj.response_v[mask_HL_0]) / 
+						(length(subj.response_v[mask_HL_4]) + length(subj.response_v[mask_HL_0]) + length(subj.response_v[mask_HL_1]))) ;
+		push!(press_HL_1_v, 100.0*length(subj.response_v[mask_HL_1]) / 
+						(length(subj.response_v[mask_HL_4]) + length(subj.response_v[mask_HL_0]) + length(subj.response_v[mask_HL_1]))) ;
+
+		push!(press_LH_4_v, 100.0*length(subj.response_v[mask_LH_4]) / 
+						(length(subj.response_v[mask_LH_4]) + length(subj.response_v[mask_LH_0]) + length(subj.response_v[mask_LH_1]))) ;
+		push!(press_LH_0_v, 100.0*length(subj.response_v[mask_LH_0]) / 
+						(length(subj.response_v[mask_LH_4]) + length(subj.response_v[mask_LH_0]) + length(subj.response_v[mask_LH_1]))) ;
+		push!(press_LH_1_v, 100.0*length(subj.response_v[mask_LH_1]) / 
+						(length(subj.response_v[mask_LH_4]) + length(subj.response_v[mask_LH_0]) + length(subj.response_v[mask_LH_1]))) ;
+
+		push!(press_LL_4_v, 100.0*length(subj.response_v[mask_LL_4]) / 
+						(length(subj.response_v[mask_LL_4]) + length(subj.response_v[mask_LL_0]) + length(subj.response_v[mask_LL_1]))) ;
+		push!(press_LL_0_v, 100.0*length(subj.response_v[mask_LL_0]) / 
+						(length(subj.response_v[mask_LL_4]) + length(subj.response_v[mask_LL_0]) + length(subj.response_v[mask_LL_1]))) ;
+		push!(press_LL_1_v, 100.0*length(subj.response_v[mask_LL_1]) / 
+						(length(subj.response_v[mask_LL_4]) + length(subj.response_v[mask_LL_0]) + length(subj.response_v[mask_LL_1]))) ;
+
+		push!(rt_MH_4_v, mean(subj.rt_v[mask_MH_4])) ;
+		push!(rt_MH_0_v, mean(subj.rt_v[mask_MH_0])) ;
+		push!(rt_MH_1_v, mean(subj.rt_v[mask_MH_1])) ;
+		push!(rt_ML_4_v, mean(subj.rt_v[mask_ML_4])) ;
+		push!(rt_ML_0_v, mean(subj.rt_v[mask_ML_0])) ;
+		push!(rt_ML_1_v, mean(subj.rt_v[mask_ML_1])) ;
+		push!(rt_HH_4_v, mean(subj.rt_v[mask_HH_4])) ;
+		push!(rt_HH_0_v, mean(subj.rt_v[mask_HH_0])) ;
+		push!(rt_HH_1_v, mean(subj.rt_v[mask_HH_1])) ;
+		push!(rt_HL_4_v, mean(subj.rt_v[mask_HL_4])) ;
+		push!(rt_HL_0_v, mean(subj.rt_v[mask_HL_0])) ;
+		push!(rt_HL_1_v, mean(subj.rt_v[mask_HL_1])) ;
+		push!(rt_LH_4_v, mean(subj.rt_v[mask_LH_4])) ;
+		push!(rt_LH_0_v, mean(subj.rt_v[mask_LH_0])) ;
+		push!(rt_LH_1_v, mean(subj.rt_v[mask_LH_1])) ;
+		push!(rt_LL_4_v, mean(subj.rt_v[mask_LL_4])) ;
+		push!(rt_LL_0_v, mean(subj.rt_v[mask_LL_0])) ;
+		push!(rt_LL_1_v, mean(subj.rt_v[mask_LL_1])) ;
+	end
+
+	figure()
+	ax = gca()
+	x_ticks = [0.5, 1.0, 1.5] ;
+	scatter(fill(x_ticks[1],length(rt_HH_4_v)), rt_HH_4_v, color = "red", alpha = 0.3) ;
+	scatter(fill(x_ticks[2],length(rt_HH_0_v)), rt_HH_0_v, color = "blue", alpha = 0.3) ;
+	scatter(fill(x_ticks[3],length(rt_HH_1_v)), rt_HH_1_v, color = "green", alpha = 0.3) ;
+
+	errorbar(x_ticks[1], mean(rt_HH_4_v[map(x->!isnan(x), rt_HH_4_v)]), yerr = std(rt_HH_4_v[map(x->!isnan(x), rt_HH_4_v)]) / sqrt(length(rt_HH_4_v[map(x->!isnan(x), rt_HH_4_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "red")
+	errorbar(x_ticks[2], mean(rt_HH_0_v[map(x->!isnan(x), rt_HH_0_v)]), yerr = std(rt_HH_0_v[map(x->!isnan(x), rt_HH_0_v)]) / sqrt(length(rt_HH_0_v[map(x->!isnan(x), rt_HH_0_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "blue")
+	errorbar(x_ticks[3], mean(rt_HH_1_v[map(x->!isnan(x), rt_HH_1_v)]), yerr = std(rt_HH_1_v[map(x->!isnan(x), rt_HH_1_v)]) / sqrt(length(rt_HH_1_v[map(x->!isnan(x), rt_HH_1_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "green")
+
+	x_ticks .+= 3.0 ;
+	scatter(fill(x_ticks[1],length(rt_HL_4_v)), rt_HL_4_v, color = "red", alpha = 0.3) ;
+	scatter(fill(x_ticks[2],length(rt_HL_0_v)), rt_HL_0_v, color = "blue", alpha = 0.3) ;
+	scatter(fill(x_ticks[3],length(rt_HL_1_v)), rt_HL_1_v, color = "green", alpha = 0.3) ;
+
+	errorbar(x_ticks[1], mean(rt_HL_4_v[map(x->!isnan(x), rt_HL_4_v)]), yerr = std(rt_HL_4_v[map(x->!isnan(x), rt_HL_4_v)]) / sqrt(length(rt_HL_4_v[map(x->!isnan(x), rt_HL_4_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "red")
+	errorbar(x_ticks[2], mean(rt_HL_0_v[map(x->!isnan(x), rt_HL_0_v)]), yerr = std(rt_HL_0_v[map(x->!isnan(x), rt_HL_0_v)]) / sqrt(length(rt_HL_0_v[map(x->!isnan(x), rt_HL_0_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "blue")
+	errorbar(x_ticks[3], mean(rt_HL_1_v[map(x->!isnan(x), rt_HL_1_v)]), yerr = std(rt_HL_1_v[map(x->!isnan(x), rt_HL_1_v)]) / sqrt(length(rt_HL_1_v[map(x->!isnan(x), rt_HL_1_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "green")
+
+	x_ticks .+= 3.0 ;
+	scatter(fill(x_ticks[1],length(rt_MH_4_v)), rt_MH_4_v, color = "red", alpha = 0.3) ;
+	scatter(fill(x_ticks[2],length(rt_MH_0_v)), rt_MH_0_v, color = "blue", alpha = 0.3) ;
+	scatter(fill(x_ticks[3],length(rt_MH_1_v)), rt_MH_1_v, color = "green", alpha = 0.3) ;
+
+	errorbar(x_ticks[1], mean(rt_MH_4_v[map(x->!isnan(x), rt_MH_4_v)]), yerr = std(rt_MH_4_v[map(x->!isnan(x), rt_MH_4_v)]) / sqrt(length(rt_MH_4_v[map(x->!isnan(x), rt_MH_4_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "red")
+	errorbar(x_ticks[2], mean(rt_MH_0_v[map(x->!isnan(x), rt_MH_0_v)]), yerr = std(rt_MH_0_v[map(x->!isnan(x), rt_MH_0_v)]) / sqrt(length(rt_MH_0_v[map(x->!isnan(x), rt_MH_0_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "blue")
+	errorbar(x_ticks[3], mean(rt_MH_1_v[map(x->!isnan(x), rt_MH_1_v)]), yerr = std(rt_MH_1_v[map(x->!isnan(x), rt_MH_1_v)]) / sqrt(length(rt_MH_1_v[map(x->!isnan(x), rt_MH_1_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "green")
+
+	x_ticks .+= 3.0 ;
+	scatter(fill(x_ticks[1],length(rt_ML_4_v)), rt_ML_4_v, color = "red", alpha = 0.3) ;
+	scatter(fill(x_ticks[2],length(rt_ML_0_v)), rt_ML_0_v, color = "blue", alpha = 0.3) ;
+	scatter(fill(x_ticks[3],length(rt_ML_1_v)), rt_ML_1_v, color = "green", alpha = 0.3) ;
+
+	errorbar(x_ticks[1], mean(rt_ML_4_v[map(x->!isnan(x), rt_ML_4_v)]), yerr = std(rt_ML_4_v[map(x->!isnan(x), rt_ML_4_v)]) / sqrt(length(rt_ML_4_v[map(x->!isnan(x), rt_ML_4_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "red")
+	errorbar(x_ticks[2], mean(rt_ML_0_v[map(x->!isnan(x), rt_ML_0_v)]), yerr = std(rt_ML_0_v[map(x->!isnan(x), rt_ML_0_v)]) / sqrt(length(rt_ML_0_v[map(x->!isnan(x), rt_ML_0_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "blue")
+	errorbar(x_ticks[3], mean(rt_ML_1_v[map(x->!isnan(x), rt_ML_1_v)]), yerr = std(rt_ML_1_v[map(x->!isnan(x), rt_ML_1_v)]) / sqrt(length(rt_ML_1_v[map(x->!isnan(x), rt_ML_1_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "green")
+
+	x_ticks .+= 3.0 ;
+	scatter(fill(x_ticks[1],length(rt_LH_4_v)), rt_LH_4_v, color = "red", alpha = 0.3) ;
+	scatter(fill(x_ticks[2],length(rt_LH_0_v)), rt_LH_0_v, color = "blue", alpha = 0.3) ;
+	scatter(fill(x_ticks[3],length(rt_LH_1_v)), rt_LH_1_v, color = "green", alpha = 0.3) ;
+
+	errorbar(x_ticks[1], mean(rt_LH_4_v[map(x->!isnan(x), rt_LH_4_v)]), yerr = std(rt_LH_4_v[map(x->!isnan(x), rt_LH_4_v)]) / sqrt(length(rt_LH_4_v[map(x->!isnan(x), rt_LH_4_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "red")
+	errorbar(x_ticks[2], mean(rt_LH_0_v[map(x->!isnan(x), rt_LH_0_v)]), yerr = std(rt_LH_0_v[map(x->!isnan(x), rt_LH_0_v)]) / sqrt(length(rt_LH_0_v[map(x->!isnan(x), rt_LH_0_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "blue")
+	errorbar(x_ticks[3], mean(rt_LH_1_v[map(x->!isnan(x), rt_LH_1_v)]), yerr = std(rt_LH_1_v[map(x->!isnan(x), rt_LH_1_v)]) / sqrt(length(rt_LH_1_v[map(x->!isnan(x), rt_LH_1_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "green")
+
+	x_ticks .+= 3.0 ;
+	scatter(fill(x_ticks[1],length(rt_LL_4_v)), rt_LL_4_v, color = "red", alpha = 0.3, label = "4 previous") ;
+	scatter(fill(x_ticks[2],length(rt_LL_0_v)), rt_LL_0_v, color = "blue", alpha = 0.3, label = "0 previous") ;
+	scatter(fill(x_ticks[3],length(rt_LL_1_v)), rt_LL_1_v, color = "green", alpha = 0.3, label = "1 previous") ;
+
+	errorbar(x_ticks[1], mean(rt_LL_4_v[map(x->!isnan(x), rt_LL_4_v)]), yerr = std(rt_LL_4_v[map(x->!isnan(x), rt_LL_4_v)]) / sqrt(length(rt_LL_4_v[map(x->!isnan(x), rt_LL_4_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "red")
+	errorbar(x_ticks[2], mean(rt_LL_0_v[map(x->!isnan(x), rt_LL_0_v)]), yerr = std(rt_LL_0_v[map(x->!isnan(x), rt_LL_0_v)]) / sqrt(length(rt_LL_0_v[map(x->!isnan(x), rt_LL_0_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "blue")
+	errorbar(x_ticks[3], mean(rt_LL_1_v[map(x->!isnan(x), rt_LL_1_v)]), yerr = std(rt_LL_1_v[map(x->!isnan(x), rt_LL_1_v)]) / sqrt(length(rt_LL_1_v[map(x->!isnan(x), rt_LL_1_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "green")
+
+	ax[:set_xticks]([x_ticks[2] - 5.0*3.0, x_ticks[2] - 4.0*3.0, x_ticks[2] - 3.0*3.0, 
+		x_ticks[2] - 2.0*3.0, x_ticks[2] - 1.0*3.0, x_ticks[2]])
+	ax[:set_xticklabels](["High tone \n High response", "High tone \n Low response",
+						"Mid tone \n High response", "Mid tone \n Low response",
+						"Low tone \n High response", "Low tone \n Low response"])
+	ax[:tick_params](labelsize = 16)
+	ylabel("Response latency [s]", fontsize = 16)
+	legend(fontsize = 16)
+
+	figure()
+	ax = gca()
+	x_ticks = [0.5, 1.0, 1.5] ;
+	
+	scatter(fill(x_ticks[1],length(press_HH_4_v)), press_HH_4_v, color = "red", alpha = 0.3) ;
+	scatter(fill(x_ticks[2],length(press_HH_0_v)), press_HH_0_v, color = "blue", alpha = 0.3) ;
+	scatter(fill(x_ticks[3],length(press_HH_1_v)), press_HH_1_v, color = "green", alpha = 0.3) ;
+
+	errorbar(x_ticks[1], mean(press_HH_4_v[map(x->!isnan(x), press_HH_4_v)]), yerr = std(press_HH_4_v[map(x->!isnan(x), press_HH_4_v)]) / sqrt(length(press_HH_4_v[map(x->!isnan(x), press_HH_4_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "red")
+	errorbar(x_ticks[2], mean(press_HH_0_v[map(x->!isnan(x), press_HH_0_v)]), yerr = std(press_HH_0_v[map(x->!isnan(x), press_HH_0_v)]) / sqrt(length(press_HH_0_v[map(x->!isnan(x), press_HH_0_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "blue")
+	errorbar(x_ticks[3], mean(press_HH_1_v[map(x->!isnan(x), press_HH_1_v)]), yerr = std(press_HH_1_v[map(x->!isnan(x), press_HH_1_v)]) / sqrt(length(press_HH_1_v[map(x->!isnan(x), press_HH_1_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "green")
+
+	x_ticks .+= 3.0 ;
+	scatter(fill(x_ticks[1],length(press_HL_4_v)), press_HL_4_v, color = "red", alpha = 0.3) ;
+	scatter(fill(x_ticks[2],length(press_HL_0_v)), press_HL_0_v, color = "blue", alpha = 0.3) ;
+	scatter(fill(x_ticks[3],length(press_HL_1_v)), press_HL_1_v, color = "green", alpha = 0.3) ;
+
+	errorbar(x_ticks[1], mean(press_HL_4_v[map(x->!isnan(x), press_HL_4_v)]), yerr = std(press_HL_4_v[map(x->!isnan(x), press_HL_4_v)]) / sqrt(length(press_HL_4_v[map(x->!isnan(x), press_HL_4_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "red")
+	errorbar(x_ticks[2], mean(press_HL_0_v[map(x->!isnan(x), press_HL_0_v)]), yerr = std(press_HL_0_v[map(x->!isnan(x), press_HL_0_v)]) / sqrt(length(press_HL_0_v[map(x->!isnan(x), press_HL_0_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "blue")
+	errorbar(x_ticks[3], mean(press_HL_1_v[map(x->!isnan(x), press_HL_1_v)]), yerr = std(press_HL_1_v[map(x->!isnan(x), press_HL_1_v)]) / sqrt(length(press_HL_1_v[map(x->!isnan(x), press_HL_1_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "green")
+
+	x_ticks .+= 3.0 ;
+	scatter(fill(x_ticks[1],length(press_MH_4_v)), press_MH_4_v, color = "red", alpha = 0.3) ;
+	scatter(fill(x_ticks[2],length(press_MH_0_v)), press_MH_0_v, color = "blue", alpha = 0.3) ;
+	scatter(fill(x_ticks[3],length(press_MH_1_v)), press_MH_1_v, color = "green", alpha = 0.3) ;
+
+	errorbar(x_ticks[1], mean(press_MH_4_v[map(x->!isnan(x), press_MH_4_v)]), yerr = std(press_MH_4_v[map(x->!isnan(x), press_MH_4_v)]) / sqrt(length(press_MH_4_v[map(x->!isnan(x), press_MH_4_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "red")
+	errorbar(x_ticks[2], mean(press_MH_0_v[map(x->!isnan(x), press_MH_0_v)]), yerr = std(press_MH_0_v[map(x->!isnan(x), press_MH_0_v)]) / sqrt(length(press_MH_0_v[map(x->!isnan(x), press_MH_0_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "blue")
+	errorbar(x_ticks[3], mean(press_MH_1_v[map(x->!isnan(x), press_MH_1_v)]), yerr = std(press_MH_1_v[map(x->!isnan(x), press_MH_1_v)]) / sqrt(length(press_MH_1_v[map(x->!isnan(x), press_MH_1_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "green")
+
+	x_ticks .+= 3.0 ;
+	scatter(fill(x_ticks[1],length(press_ML_4_v)), press_ML_4_v, color = "red", alpha = 0.3) ;
+	scatter(fill(x_ticks[2],length(press_ML_0_v)), press_ML_0_v, color = "blue", alpha = 0.3) ;
+	scatter(fill(x_ticks[3],length(press_ML_1_v)), press_ML_1_v, color = "green", alpha = 0.3) ;
+
+	errorbar(x_ticks[1], mean(press_ML_4_v[map(x->!isnan(x), press_ML_4_v)]), yerr = std(press_ML_4_v[map(x->!isnan(x), press_ML_4_v)]) / sqrt(length(press_ML_4_v[map(x->!isnan(x), press_ML_4_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "red")
+	errorbar(x_ticks[2], mean(press_ML_0_v[map(x->!isnan(x), press_ML_0_v)]), yerr = std(press_ML_0_v[map(x->!isnan(x), press_ML_0_v)]) / sqrt(length(press_ML_0_v[map(x->!isnan(x), press_ML_0_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "blue")
+	errorbar(x_ticks[3], mean(press_ML_1_v[map(x->!isnan(x), press_ML_1_v)]), yerr = std(press_ML_1_v[map(x->!isnan(x), press_ML_1_v)]) / sqrt(length(press_ML_1_v[map(x->!isnan(x), press_ML_1_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "green")
+
+	x_ticks .+= 3.0 ;
+	scatter(fill(x_ticks[1],length(press_LH_4_v)), press_LH_4_v, color = "red", alpha = 0.3) ;
+	scatter(fill(x_ticks[2],length(press_LH_0_v)), press_LH_0_v, color = "blue", alpha = 0.3) ;
+	scatter(fill(x_ticks[3],length(press_LH_1_v)), press_LH_1_v, color = "green", alpha = 0.3) ;
+
+	errorbar(x_ticks[1], mean(press_LH_4_v[map(x->!isnan(x), press_LH_4_v)]), yerr = std(press_LH_4_v[map(x->!isnan(x), press_LH_4_v)]) / sqrt(length(press_LH_4_v[map(x->!isnan(x), press_LH_4_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "red")
+	errorbar(x_ticks[2], mean(press_LH_0_v[map(x->!isnan(x), press_LH_0_v)]), yerr = std(press_LH_0_v[map(x->!isnan(x), press_LH_0_v)]) / sqrt(length(press_LH_0_v[map(x->!isnan(x), press_LH_0_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "blue")
+	errorbar(x_ticks[3], mean(press_LH_1_v[map(x->!isnan(x), press_LH_1_v)]), yerr = std(press_LH_1_v[map(x->!isnan(x), press_LH_1_v)]) / sqrt(length(press_LH_1_v[map(x->!isnan(x), press_LH_1_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "green")
+
+	x_ticks .+= 3.0 ;
+	scatter(fill(x_ticks[1],length(press_LL_4_v)), press_LL_4_v, color = "red", alpha = 0.3, label = "4 previous") ;
+	scatter(fill(x_ticks[2],length(press_LL_0_v)), press_LL_0_v, color = "blue", alpha = 0.3, label = "0 previous") ;
+	scatter(fill(x_ticks[3],length(press_LL_1_v)), press_LL_1_v, color = "green", alpha = 0.3, label = "1 previous") ;
+
+	errorbar(x_ticks[1], mean(press_LL_4_v[map(x->!isnan(x), press_LL_4_v)]), yerr = std(press_LL_4_v[map(x->!isnan(x), press_LL_4_v)]) / sqrt(length(press_LL_4_v[map(x->!isnan(x), press_LL_4_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "red")
+	errorbar(x_ticks[2], mean(press_LL_0_v[map(x->!isnan(x), press_LL_0_v)]), yerr = std(press_LL_0_v[map(x->!isnan(x), press_LL_0_v)]) / sqrt(length(press_LL_0_v[map(x->!isnan(x), press_LL_0_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "blue")
+	errorbar(x_ticks[3], mean(press_LL_1_v[map(x->!isnan(x), press_LL_1_v)]), yerr = std(press_LL_1_v[map(x->!isnan(x), press_LL_1_v)]) / sqrt(length(press_LL_1_v[map(x->!isnan(x), press_LL_1_v)])), 
+				marker = "D", markersize = 10, capsize = 10, color = "green")
+
+	ax[:set_xticks]([x_ticks[2] - 5.0*3.0, x_ticks[2] - 4.0*3.0, x_ticks[2] - 3.0*3.0, 
+		x_ticks[2] - 2.0*3.0, x_ticks[2] - 1.0*3.0, x_ticks[2]])
+	ax[:set_xticklabels](["High tone \n High response", "High tone \n Low response",
+						"Mid tone \n High response", "Mid tone \n Low response",
+						"Low tone \n High response", "Low tone \n Low response"])
+	ax[:tick_params](labelsize = 16)
+	ylabel("Responses [% of current tone-response]", fontsize = 16)
+	legend(fontsize = 16)
+
+
+	figure()
+	ax = gca()
+
+	hist([rt_HH_4_v, rt_HH_1_v, rt_HH_0_v], 50, density = 1, alpha = 0.3,
+		stacked = true, color = ["red", "green", "blue"], label = ["4", "1", "0"])
+
+	legend(fontsize = 18)
+	title("HH", fontsize = 18)
+
+	figure()
+	ax = gca()
+
+	hist([rt_MH_4_v, rt_MH_1_v, rt_MH_0_v], 50, density = 1, alpha = 0.3,
+		stacked = true, color = ["red", "green", "blue"], label = ["4", "1", "0"])
+
+	legend(fontsize = 18)
+	title("MH", fontsize = 18)
+
+	figure()
+	ax = gca()
+
+	hist([rt_LH_4_v, rt_LH_1_v, rt_LH_0_v], 50, density = 1, alpha = 0.3,
+		stacked = true, color = ["red", "green", "blue"], label = ["4", "1", "0"])
+
+	legend(fontsize = 18)
+	title("LH", fontsize = 18)
+
+	figure()
+	ax = gca()
+
+	hist([rt_HL_4_v, rt_HL_1_v, rt_HL_0_v], 50, density = 1, alpha = 0.3,
+		stacked = true, color = ["red", "green", "blue"], label = ["4", "1", "0"])
+
+	legend(fontsize = 18)
+	title("HL", fontsize = 18)
+
+	figure()
+	ax = gca()
+
+	hist([rt_ML_4_v, rt_ML_1_v, rt_ML_0_v], 50, density = 1, alpha = 0.3,
+		stacked = true, color = ["red", "green", "blue"], label = ["4", "1", "0"])
+
+	legend(fontsize = 18)
+	title("ML", fontsize = 18)
+
+	figure()
+	ax = gca()
+
+	hist([rt_LL_4_v, rt_LL_1_v, rt_LL_0_v], 50, density = 1, alpha = 0.3,
+		stacked = true, color = ["red", "green", "blue"], label = ["4", "1", "0"])
+
+	legend(fontsize = 18)
+	title("LL", fontsize = 18)
+
 	show()
 end
 
