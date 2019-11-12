@@ -7,6 +7,59 @@ struct subj_psycho_t
 	conditioned_reward::Int64
 end
 
+function get_separate_session_subj(subj_v::Array{subj_t,1}, n_sessions::Int64, min_completed_trials::Int64)
+
+	session_subj_v = [subj_t[] for i = 1 : n_sessions] ;
+	#s1_subj_v = Array{subj_t, 1}() ; # first session
+	#s2_subj_v = Array{subj_t, 1}() ; # second session
+
+	considered_subj_d = Dict{String, Int64}() ;
+
+	for subj in subj_v
+		mask_prem = map(x -> x == 0 , subj.tone_v) ;
+		if !haskey(considered_subj_d, subj.id) 
+			if count(x -> x == false, mask_prem) >= min_completed_trials
+				push!(session_subj_v[1], subj) ;
+				considered_subj_d[subj.id] = 1 ;
+			else
+				considered_subj_d[subj.id] = 0 ;
+			end
+		else
+			for i = 2 : n_sessions
+				if considered_subj_d[subj.id] == i - 1
+					push!(session_subj_v[i], subj) ;
+					considered_subj_d[subj.id] += 1 ;
+					break ;
+				end
+			end
+		end
+	end
+	return session_subj_v
+end
+
+function get_block_data(subj_v::Array{subj_t,1}, block_sz::Int64, 
+					tone_playing::Int64, response_made::Int64)
+
+	resp_m = Matrix{Float64}(undef, length(subj_v), 5) ;
+	rt_m = Matrix{Float64}(undef, length(subj_v), 5) ;
+
+	s = 1 ;
+	for subj in subj_v
+		for i = 1 : 5
+			mask_tone_resp = map((x,y,z) -> x == tone_playing && y == response_made && z <= i*block_sz && z > (i-1)*block_sz, 
+				subj.tone_v, subj.response_v, 1:length(subj.tone_v)) ;
+			mask_tone = map((x,z) -> x == tone_playing && z <= i*block_sz && z > (i-1)*block_sz, 
+				subj.tone_v, 1:length(subj.tone_v)) ;
+
+			resp_m[s,i] = 100.0*count(x -> x == true, mask_tone_resp) / count(x -> x == true, mask_tone) ;
+			rt_m[s,i] = mean(subj.rt_v[mask_tone_resp]) ;
+		end
+		s += 1 ;
+	end
+	#return (resp_m, rt_m)
+	return resp_m
+end
+
 function run_dr(dr_d::Dict{String, Array{Float64}})
 
 	dr_m = Matrix{Float64}(undef, length(dr_d[collect(keys(dr_d))[1]]), length(collect(keys(dr_d)))) ;

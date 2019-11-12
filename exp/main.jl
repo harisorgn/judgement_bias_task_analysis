@@ -1,6 +1,6 @@
 using XLSX, DataFrames,  DataStructures
 using Statistics, Distributions, HypothesisTests, Random
-using Optim, LineSearches, ForwardDiff, DiffEqDiffTools, LinearAlgebra
+#using Optim, LineSearches, ForwardDiff, DiffEqDiffTools, LinearAlgebra
 using RecursiveArrayTools
 using MultivariateStats
 
@@ -12,33 +12,31 @@ include("mi.jl")
 include("plot.jl")
 include("fit.jl")
 
-session_to_analyse = :probe ;
+
+session_to_analyse = :train ;
 write_flag = false ;
-path = "./probe/baseline/"
+path = "./ho3/crf/"
 
 subj_v = klimb_read(path, session_to_analyse, write_flag)
 
-plot_resp_rt_prev_reward(subj_v)
+n_sessions = 2 ;
 
-#plot_rr(subj_v, 20)
+session_subj_v = get_separate_session_subj(subj_v, n_sessions, 0) ;
 
-#subj_v = old_klimb_read(path, session_to_analyse, write_flag)
+plot_crf(session_subj_v)
 
-#plot_rt(subj_v)
+#plot_block_data(session_subj_v, 24, ["First", "Second"])
 
-#plot_psychometric(subj_v, -1, -1, -1, fit = false, curve = :all)
-
-#plot_rt_prev(subj_v)
-
-#plot_switch(subj_v)
 
 #=
-path = "./exp/probe/ketamine/veh/" ;
-subj_veh_v = old_klimb_read(path, session_to_analyse, write_flag)
+session_to_analyse = :probe ;
+write_flag = false ;
 
-path = "./exp/probe/ketamine/ket/" ;
-subj_ket_v = old_klimb_read(path, session_to_analyse, write_flag)
+path = "./probe/ketamine/veh/"
+s1_subj_v = old_klimb_read(path, session_to_analyse, write_flag)
 
-plot_ket_switch(subj_veh_v, subj_ket_v) 
+path = "./probe/ketamine/ket/"
+s2_subj_v = old_klimb_read(path, session_to_analyse, write_flag)
+
+plot_block_resp_rt(s1_subj_v, s2_subj_v)
 =#
-

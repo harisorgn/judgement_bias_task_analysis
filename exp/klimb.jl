@@ -68,6 +68,9 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 				elseif occursin("Probe", df[row_idx, 3]) && occursin("tones", df[row_idx, 3])
 					session = :probe_mult_p_1v1 ;
 					dt_row_len = 13 ;
+				elseif occursin("CRF", df[row_idx, 3])
+					session = :crf ;
+					dt_row_len = 32 ;
 				end
 			end
 
@@ -75,8 +78,8 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 				subj_id = df[row_idx, 2] ;
 			end
 			
-			if occursin("Ref", df[row_idx, 1]) && occursin("Outcome", df[row_idx, 2]) && session != :not_interesting
-				
+			if occursin("Ref", df[row_idx, 1]) && occursin("Outcome", df[row_idx, 2]) && session != :not_interesting &&
+				!any(exclude_v .== subj_id)
 				subj_m = Array{Int64,1}() ;
 				row_idx += 1 ;
 
@@ -157,10 +160,9 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 
 					subj_t , subj_write_v = get_train_subj(subj_m, subj_id, session, 0) ;
 					
-					if subj_write_v[7] >= acc_criterion && subj_write_v[8] >= acc_criterion
-						push!(subj_t_v, subj_t) ;
-						push!(write_v, subj_write_v) ;
-					end
+					push!(subj_t_v, subj_t) ;
+					push!(write_v, subj_write_v) ;
+
 				elseif session == :pulses && session_to_analyse == :train
 					if first_time
 						println(file_name)
@@ -169,10 +171,18 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 
 					subj_t , subj_write_v = get_train_pulses_subj(subj_m, subj_id, session, 0) ;
 					
-					if subj_write_v[7] >= acc_criterion && subj_write_v[8] >= acc_criterion
-						push!(subj_t_v, subj_t) ;
-						push!(write_v, subj_write_v) ;
+					push!(subj_t_v, subj_t) ;
+					push!(write_v, subj_write_v) ;
+				elseif session == :crf && session_to_analyse == :train
+					if first_time
+						println(file_name)
+						first_time = false ;
 					end
+
+					subj_t , subj_write_v = get_crf_subj(subj_m, subj_id) ;
+					
+					push!(subj_t_v, subj_t) ;
+					push!(write_v, subj_write_v) ;
 				end
 			end
 		end
@@ -1552,7 +1562,7 @@ function old_klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bo
 					dt_row_len = 22 ;
 				elseif occursin("Probe", df[row_idx, 3]) && occursin("midpoint", df[row_idx, 3])
 					session = :probe ;
-					if occursin("02-Dec", file_name) # CH1 batch file
+					if occursin("2014", file_name) # CH1 batch file
 						dt_row_len = 16 ;
 					else
 						dt_row_len = 20 ;
@@ -1573,7 +1583,8 @@ function old_klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bo
 				subj_id = df[row_idx, 2] ;
 			end
 			
-			if occursin("Ref", df[row_idx, 1]) && occursin("Outcome", df[row_idx, 2]) && session != :not_interesting
+			if occursin("Ref", df[row_idx, 1]) && occursin("Outcome", df[row_idx, 2]) && session != :not_interesting &&
+				!any(exclude_v .== subj_id)
 				
 				subj_m = Array{Int64,1}() ;
 				row_idx += 1 ;
@@ -1592,7 +1603,7 @@ function old_klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bo
 						first_time = false ;
 					end
 
-					if occursin("02-Dec", file_name) # CH1 batch file
+					if occursin("2014", file_name) # CH1 batch file
 						subj_t , subj_write_v = get_old_probe_subj(subj_m, subj_id, 0) ;
 					else
 						subj_t , subj_write_v = get_probe_subj(subj_m, subj_id, 0) ;
@@ -1854,3 +1865,33 @@ function get_old_probe_subj(subj_m::Array{Int64,2}, subj_id::String, col_offset:
 				write_v[14]) , write_v
 end
 
+function get_crf_subj(subj_m::Array{Int64,2}, subj_id::String)
+
+	reward = ones(Int64, size(subj_m,1)) ;
+	response = ones(Int64, size(subj_m,1)) ;
+	tone = zeros(Int64, size(subj_m,1)) ;
+	rt = zeros(Float64, size(subj_m,1)) ;
+	
+	id_number_idx = findlast(isequal('_'), subj_id) ;
+	id_number = tryparse(Int64, subj_id[id_number_idx + 1 : end]) ;
+
+	mask_response1 = map((x,y) -> x != 2 && x != 4 && y != 0, subj_m[:,2], subj_m[:,20]) ;
+	mask_response2 = map((x,y) -> x != 2 && x != 4 && y != 0, subj_m[:,2], subj_m[:,26]) ;
+
+	mask_om = map(x -> x == 2 , subj_m[:,2]) ;
+	mask_prem = map(x -> x == 4,  subj_m[:,2]) ;
+
+	write_v = Array{Any,1}(undef, length(probe_header_v)) ;
+	write_v[1] = id_number ;
+	write_v[14] = 0.0 ;
+
+	rt[mask_response1] = (subj_m[mask_response1, 20] - subj_m[mask_response1, 19]) / 100.0 ;
+	rt[mask_response2] = (subj_m[mask_response2, 26] - subj_m[mask_response2, 25]) / 100.0 ;
+
+	return subj_t(subj_id, 
+				response, 
+				reward, 
+				tone, 
+				rt, 
+				write_v[14]) , write_v
+end
