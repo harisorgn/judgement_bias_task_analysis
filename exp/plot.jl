@@ -6,6 +6,39 @@ nanmean(x,y) = mapslices(nanmean,x;dims = y)
 nanstd(x) = std(filter(!isnan,x))
 nanstd(x,y) = mapslices(nanstd,x;dims = y)
 
+function plot_block_acc(session_subj_v::Array{Array{subj_t,1},1})
+
+	acc_m = Matrix{Float64}(undef, length(session_subj_v), length(session_subj_v[1])) ;
+
+	s = 1 ;
+	for subj_v in session_subj_v
+
+		c = 1 ;
+		for subj in subj_v
+			mask_corr = map(x -> x != 0, subj.reward_v) ;
+			mask_om = map((x,y) -> x == 0 && y != 0, subj.response_v, subj.tone_v) ;
+			mask_prem = map(x -> x == 0, subj.tone_v) ;
+
+			acc_m[s, c] = 100.0 * count(x -> x == true, mask_prem) / length(subj.response_v) ;
+			c += 1 ;
+		end
+
+		s += 1 ;
+	end
+
+	x_ticks = 1 : length(session_subj_v) ;
+
+	figure()
+	ax = gca()
+
+	errorbar(x_ticks, nanmean(acc_m, 2)[:], yerr = nanstd(acc_m, 2)[:]./size(acc_m, 2))
+
+	xlabel("Session", fontsize = 18)
+	ylabel("Prematures [%]", fontsize = 18)
+
+	show()
+end
+
 function plot_block_data(session_subj_v::Array{Array{subj_t,1},1}, block_sz::Int64,
 						session_labels::Array{String,1})
 	
@@ -22,10 +55,10 @@ function plot_block_data(session_subj_v::Array{Array{subj_t,1},1}, block_sz::Int
 	session = 1 ;
 
 	for subj_v in session_subj_v
-		session_hh_m = get_block_data(subj_v, block_sz, 2, 2) ;
-		session_mh_m = get_block_data(subj_v, block_sz, 5, 2) ;
-		session_ml_m = get_block_data(subj_v, block_sz, 5, 8) ;
-		session_ll_m = get_block_data(subj_v, block_sz, 8, 8) ;
+		session_hh_m = get_block_data(subj_v, block_sz, n_blocks, 2, 2) ;
+		session_mh_m = get_block_data(subj_v, block_sz, n_blocks, 5, 2) ;
+		session_ml_m = get_block_data(subj_v, block_sz, n_blocks, 5, 8) ;
+		session_ll_m = get_block_data(subj_v, block_sz, n_blocks, 8, 8) ;
 
 		plot(x_ticks .+ (session - 1)*n_blocks, nanmean(session_mh_m, 1)[:], "-r")
 		plot(x_ticks .+ (session - 1)*n_blocks, nanmean(session_ml_m, 1)[:], "-b")
@@ -66,103 +99,7 @@ function plot_block_data(session_subj_v::Array{Array{subj_t,1},1}, block_sz::Int
 	ax[:tick_params](labelsize = 18)
 
 	show()
-	#=
-	(s1_hh_m, s1_hh_rt_m) = get_block_resp_rt(s1_subj_v, 2, 2) ;
-	(s1_mh_m, s1_mh_rt_m) = get_block_resp_rt(s1_subj_v, 5, 2) ;
-	(s1_ml_m, s1_ml_rt_m) = get_block_resp_rt(s1_subj_v, 5, 8) ;
-	(s1_ll_m, s1_ll_rt_m) = get_block_resp_rt(s1_subj_v, 8, 8) ;
 
-	(s2_hh_m, s2_hh_rt_m) = get_block_resp_rt(s2_subj_v, 2, 2) ;
-	(s2_mh_m, s2_mh_rt_m) = get_block_resp_rt(s2_subj_v, 5, 2) ;
-	(s2_ml_m, s2_ml_rt_m) = get_block_resp_rt(s2_subj_v, 5, 8) ;
-	(s2_ll_m, s2_ll_rt_m) = get_block_resp_rt(s2_subj_v, 8, 8) ;
-
-	x_ticks = 1:10 ;
-	
-	figure()
-	ax = gca()
-	#=
-	errorbar(x_ticks, vcat(nanmean(s1_hh_m, 1)[:], nanmean(s2_hh_m, 1)[:]), 
-		yerr = vcat(nanstd(s1_hh_m, 1)[:]./size(s1_hh_m, 1), nanstd(s2_hh_m, 1)[:]./size(s2_hh_m, 1)), 
-		marker = "D", markersize = 10, capsize = 10, color = "red", label = "HT-HR", linestyle = "")
-
-	plot(x_ticks[1:5], nanmean(s1_hh_m, 1)[:], "-r")
-	plot(x_ticks[6:10], nanmean(s2_hh_m, 1)[:], "-r")
-
-	errorbar(x_ticks, vcat(nanmean(s1_ll_m, 1)[:], nanmean(s2_ll_m, 1)[:]), 
-		yerr = vcat(nanstd(s1_ll_m, 1)[:]./size(s1_ll_m, 1), nanstd(s2_ll_m, 1)[:]./size(s2_ll_m, 1)), 
-		marker = "D", markersize = 10, capsize = 10, color = "blue", label = "LT-LR", linestyle = "")
-
-	plot(x_ticks[1:5], nanmean(s1_ll_m, 1)[:], "-b")
-	plot(x_ticks[6:10], nanmean(s2_ll_m, 1)[:], "-b")
-	=#
-	errorbar(x_ticks, vcat(nanmean(s1_mh_m, 1)[:], nanmean(s2_mh_m, 1)[:]), 
-		yerr = vcat(nanstd(s1_mh_m, 1)[:]./size(s1_mh_m, 1), nanstd(s2_mh_m, 1)[:]./size(s2_mh_m, 1)), 
-		marker = "D", markersize = 10, capsize = 10, color = "red", label = "High reward responses", linestyle = "")
-
-	plot(x_ticks[1:5], nanmean(s1_mh_m, 1)[:], "-r")
-	plot(x_ticks[6:10], nanmean(s2_mh_m, 1)[:], "-r")
-	
-	errorbar(x_ticks, vcat(nanmean(s1_ml_m, 1)[:], nanmean(s2_ml_m, 1)[:]), 
-		yerr = vcat(nanstd(s1_ml_m, 1)[:]./size(s1_ml_m, 1), nanstd(s2_ml_m, 1)[:]./size(s2_ml_m, 1)), 
-		marker = "D", markersize = 10, capsize = 10, color = "blue", label = "Low reward responses", linestyle = "")
-
-	plot(x_ticks[1:5], nanmean(s1_ml_m, 1)[:], "-b")
-	plot(x_ticks[6:10], nanmean(s2_ml_m, 1)[:], "-b")
-
-	legend(fontsize = 18, frameon = false)
-	ylabel("Percentage responses", fontsize = 18)
-	title("Main effect of ketamine", fontsize = 18)
-
-	ax.set_ylim([20.0, 80.0])
-	ax[:set_xticks](x_ticks)
-	ax[:set_xticklabels](["Block 1", "Block 2", "Block 3 \n \n Vehicle session", "Block 4", "Block 5",
-						"Block 1", "Block 2", "Block 3 \n \n Ketamine (1.0 mg/kg) session", "Block 4", "Block 5"])
-	ax[:tick_params](labelsize = 18)
-
-	figure()
-	ax = gca()
-
-	errorbar(x_ticks, vcat(nanmean(s1_hh_rt_m, 1)[:], nanmean(s2_hh_rt_m, 1)[:]), 
-		yerr = vcat(nanstd(s1_hh_rt_m, 1)[:]./size(s1_hh_rt_m, 1), nanstd(s2_hh_rt_m, 1)[:]./size(s2_hh_rt_m, 1)), 
-		marker = "D", markersize = 10, capsize = 10, color = "red", label = "HT-HR", linestyle = "")
-
-	plot(x_ticks[1:5], nanmean(s1_hh_rt_m, 1)[:], "-r")
-	plot(x_ticks[6:10], nanmean(s2_hh_rt_m, 1)[:], "-r")
-
-	errorbar(x_ticks, vcat(nanmean(s1_mh_rt_m, 1)[:], nanmean(s2_mh_rt_m, 1)[:]), 
-		yerr = vcat(nanstd(s1_mh_rt_m, 1)[:]./size(s1_mh_rt_m, 1), nanstd(s2_mh_rt_m, 1)[:]./size(s2_mh_rt_m, 1)), 
-		marker = "D", markersize = 10, capsize = 10, color = "green", label = "MT-HR", linestyle = "")
-
-	plot(x_ticks[1:5], nanmean(s1_mh_rt_m, 1)[:], "-g")
-	plot(x_ticks[6:10], nanmean(s2_mh_rt_m, 1)[:], "-g")
-
-	errorbar(x_ticks, vcat(nanmean(s1_ml_rt_m, 1)[:], nanmean(s2_ml_rt_m, 1)[:]), 
-		yerr = vcat(nanstd(s1_ml_rt_m, 1)[:]./size(s1_ml_rt_m, 1), nanstd(s2_ml_rt_m, 1)[:]./size(s2_ml_rt_m, 1)), 
-		marker = "D", markersize = 10, capsize = 10, color = "cyan", label = "MT-LR", linestyle = "")
-
-	plot(x_ticks[1:5], nanmean(s1_ml_rt_m, 1)[:], "-c")
-	plot(x_ticks[6:10], nanmean(s2_ml_rt_m, 1)[:], "-c")
-
-	errorbar(x_ticks, vcat(nanmean(s1_ll_rt_m, 1)[:], nanmean(s2_ll_rt_m, 1)[:]), 
-		yerr = vcat(nanstd(s1_ll_rt_m, 1)[:]./size(s1_ll_rt_m, 1), nanstd(s2_ll_rt_m, 1)[:]./size(s2_ll_rt_m, 1)), 
-		marker = "D", markersize = 10, capsize = 10, color = "blue", label = "LT-LR", linestyle = "")
-
-	plot(x_ticks[1:5], nanmean(s1_ll_rt_m, 1)[:], "-b")
-	plot(x_ticks[6:10], nanmean(s2_ll_rt_m, 1)[:], "-b")
-
-	legend(fontsize = 18, frameon = false)
-	ylabel("Response latency [s]", fontsize = 18)
-	#title("No main effect", fontsize = 18)
-	ax.set_ylim([0.0, 7.5])
-
-	ax[:set_xticks](x_ticks)
-	ax[:set_xticklabels](["Block 1", "Block 2", "Block 3 \n First probe session", "Block 4", "Block 5",
-						"Block 1", "Block 2", "Block 3 \n Second probe session", "Block 4", "Block 5"])
-	ax[:tick_params](labelsize = 18)
-
-	show()
-	=#
 end
 
 function plot_crf(session_subj_v::Array{Array{subj_t,1},1})

@@ -30,3 +30,4 @@ exclude_v = ["CH1_1", "CH1_4", "CH1_6", "CH1_9", "CH1_15", "CH5_10"] ;
 const acc_criterion = 0.0 ;
 const rt_criterion = 0.25 ;
 const rt_max = 20.0 ;
+const rt_max_new = 8.0 ;

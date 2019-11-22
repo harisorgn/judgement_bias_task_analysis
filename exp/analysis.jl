@@ -7,7 +7,9 @@ struct subj_psycho_t
 	conditioned_reward::Int64
 end
 
-function get_separate_session_subj(subj_v::Array{subj_t,1}, n_sessions::Int64, min_completed_trials::Int64)
+function get_separate_session_subj(subj_v::Array{subj_t,1}, min_completed_trials::Int64)
+
+	n_sessions = count(x -> x.id == subj_v[1].id, subj_v) ;
 
 	session_subj_v = [subj_t[] for i = 1 : n_sessions] ;
 	#s1_subj_v = Array{subj_t, 1}() ; # first session
@@ -37,15 +39,15 @@ function get_separate_session_subj(subj_v::Array{subj_t,1}, n_sessions::Int64, m
 	return session_subj_v
 end
 
-function get_block_data(subj_v::Array{subj_t,1}, block_sz::Int64, 
+function get_block_data(subj_v::Array{subj_t,1}, block_sz::Int64, n_blocks::Int64, 
 					tone_playing::Int64, response_made::Int64)
 
-	resp_m = Matrix{Float64}(undef, length(subj_v), 5) ;
-	rt_m = Matrix{Float64}(undef, length(subj_v), 5) ;
+	resp_m = Matrix{Float64}(undef, length(subj_v), n_blocks) ;
+	rt_m = Matrix{Float64}(undef, length(subj_v), n_blocks) ;
 
 	s = 1 ;
 	for subj in subj_v
-		for i = 1 : 5
+		for i = 1 : n_blocks
 			mask_tone_resp = map((x,y,z) -> x == tone_playing && y == response_made && z <= i*block_sz && z > (i-1)*block_sz, 
 				subj.tone_v, subj.response_v, 1:length(subj.tone_v)) ;
 			mask_tone = map((x,z) -> x == tone_playing && z <= i*block_sz && z > (i-1)*block_sz, 
