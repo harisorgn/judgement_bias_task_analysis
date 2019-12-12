@@ -19,7 +19,7 @@ function plot_block_acc(session_subj_v::Array{Array{subj_t,1},1})
 			mask_om = map((x,y) -> x == 0 && y != 0, subj.response_v, subj.tone_v) ;
 			mask_prem = map(x -> x == 0, subj.tone_v) ;
 
-			acc_m[s, c] = 100.0 * count(x -> x == true, mask_prem) / length(subj.response_v) ;
+			acc_m[s, c] = 100.0 * count(x -> x == true, mask_om) / length(subj.response_v[.!mask_prem]) ;
 			c += 1 ;
 		end
 
@@ -33,16 +33,18 @@ function plot_block_acc(session_subj_v::Array{Array{subj_t,1},1})
 
 	errorbar(x_ticks, nanmean(acc_m, 2)[:], yerr = nanstd(acc_m, 2)[:]./size(acc_m, 2))
 
-	xlabel("Session", fontsize = 18)
-	ylabel("Prematures [%]", fontsize = 18)
+	ax[:set_xticks](1 : length(session_subj_v))
+	ax[:tick_params](labelsize = 20)
+	xlabel("Session", fontsize = 20)
+	ylabel("Omissions [%]", fontsize = 20)
 
 	show()
 end
 
-function plot_block_data(session_subj_v::Array{Array{subj_t,1},1}, block_sz::Int64,
+function plot_block_data(session_subj_v::Array{Array{subj_t,1},1}, n_blocks::Int64,
 						session_labels::Array{String,1})
 	
-	n_blocks = Int64(120 / block_sz) ;
+	block_sz = Int64(n_max_trials / n_blocks) ;
 
 	figure()
 	ax = gca()
@@ -55,10 +57,10 @@ function plot_block_data(session_subj_v::Array{Array{subj_t,1},1}, block_sz::Int
 	session = 1 ;
 
 	for subj_v in session_subj_v
-		session_hh_m = get_block_data(subj_v, block_sz, n_blocks, 2, 2) ;
-		session_mh_m = get_block_data(subj_v, block_sz, n_blocks, 5, 2) ;
-		session_ml_m = get_block_data(subj_v, block_sz, n_blocks, 5, 8) ;
-		session_ll_m = get_block_data(subj_v, block_sz, n_blocks, 8, 8) ;
+		session_hh_m = get_block_data(subj_v, n_blocks, 2, 2) ;
+		session_mh_m = get_block_data(subj_v, n_blocks, 5, 2) ;
+		session_ml_m = get_block_data(subj_v, n_blocks, 5, 8) ;
+		session_ll_m = get_block_data(subj_v, n_blocks, 8, 8) ;
 
 		plot(x_ticks .+ (session - 1)*n_blocks, nanmean(session_mh_m, 1)[:], "-r")
 		plot(x_ticks .+ (session - 1)*n_blocks, nanmean(session_ml_m, 1)[:], "-b")

@@ -7,10 +7,22 @@ struct subj_psycho_t
 	conditioned_reward::Int64
 end
 
-function get_separate_session_subj(subj_v::Array{subj_t,1}, min_completed_trials::Int64)
+function get_session_subj(subj_v::Array{subj_t,1}, min_completed_trials::Int64)
 
 	n_sessions = count(x -> x.id == subj_v[1].id, subj_v) ;
 
+	error_flag = false ;
+	for subj in subj_v
+		if count(x -> x.id == subj.id, subj_v) != n_sessions
+			println("subject $(subj.id) has different number of sessions")
+			error_flag = true ;
+		end
+	end
+
+	if error_flag
+		return 0
+	end
+	
 	session_subj_v = [subj_t[] for i = 1 : n_sessions] ;
 	#s1_subj_v = Array{subj_t, 1}() ; # first session
 	#s2_subj_v = Array{subj_t, 1}() ; # second session
@@ -39,136 +51,34 @@ function get_separate_session_subj(subj_v::Array{subj_t,1}, min_completed_trials
 	return session_subj_v
 end
 
-function get_block_data(subj_v::Array{subj_t,1}, block_sz::Int64, n_blocks::Int64, 
+function get_block_data(subj_v::Array{subj_t,1}, n_blocks::Int64, 
 					tone_playing::Int64, response_made::Int64)
 
+	block_sz = Int64(n_max_trials / n_blocks) ;
 	resp_m = Matrix{Float64}(undef, length(subj_v), n_blocks) ;
 	rt_m = Matrix{Float64}(undef, length(subj_v), n_blocks) ;
 
 	s = 1 ;
 	for subj in subj_v
+
+		mask_prem = map((x,y) -> x == 0 && y != 0, subj.tone_v, subj.response_v) ;
+		tone_v = subj.tone_v[.!mask_prem] ;
+		response_v = subj.response_v[.!mask_prem] ;
+		rt_v = subj.rt_v[.!mask_prem] ;
+
 		for i = 1 : n_blocks
 			mask_tone_resp = map((x,y,z) -> x == tone_playing && y == response_made && z <= i*block_sz && z > (i-1)*block_sz, 
-				subj.tone_v, subj.response_v, 1:length(subj.tone_v)) ;
+				tone_v, response_v, 1:length(tone_v)) ;
 			mask_tone = map((x,z) -> x == tone_playing && z <= i*block_sz && z > (i-1)*block_sz, 
-				subj.tone_v, 1:length(subj.tone_v)) ;
+				tone_v, 1:length(tone_v)) ;
 
 			resp_m[s,i] = 100.0*count(x -> x == true, mask_tone_resp) / count(x -> x == true, mask_tone) ;
-			rt_m[s,i] = mean(subj.rt_v[mask_tone_resp]) ;
+			rt_m[s,i] = mean(rt_v[mask_tone_resp]) ;
 		end
 		s += 1 ;
 	end
 	#return (resp_m, rt_m)
 	return resp_m
-end
-
-function run_dr(dr_d::Dict{String, Array{Float64}})
-
-	dr_m = Matrix{Float64}(undef, length(dr_d[collect(keys(dr_d))[1]]), length(collect(keys(dr_d)))) ;
-	i = 1 ;
-
-	for k in keys(dr_d)
-		dr_m[:, i] = dr_d[k] ;
-		i += 1 ;
-	end
-
-	M = fit(PCA, dr_m) ;
-
-	y = transform(M, dr_m) ;
-
-	vars = principalvars(M) ;
-
-	figure()
-	ax = gca()
-
-	scatter3D(y[1,:], y[2,:] / (vars[1] / vars[2]), y[3,:] / (vars[1] / vars[3]))
-
-	show()
-
-end
-
-function get_dimensionality_reduction_subj(subj::subj_t)
-
-	HH = count(x -> x == true, map((y,z) -> y == 2 && z == 2, subj.tone_v, subj.response_v)) /
-		 count(x -> x == true, map((y,z) -> y == 2 && z != 0, subj.tone_v, subj.response_v)) ;
-
-	HH_RT = mean(subj.rt_v[map((y,z) -> y == 2 && z == 2, subj.tone_v, subj.response_v)]) ;
-
-	HL = count(x -> x == true, map((y,z) -> y == 2 && z == 8, subj.tone_v, subj.response_v)) /
-		 count(x -> x == true, map((y,z) -> y == 2 && z != 0, subj.tone_v, subj.response_v)) ;
-	HL_RT = mean(subj.rt_v[map((y,z) -> y == 2 && z == 8, subj.tone_v, subj.response_v)]) ;
-
-	MH = count(x -> x == true, map((y,z) -> y == 5 && z == 2, subj.tone_v, subj.response_v)) /
-		 count(x -> x == true, map((y,z) -> y == 5 && z != 0, subj.tone_v, subj.response_v)) ;
-	MH_RT = mean(subj.rt_v[map((y,z) -> y == 5 && z == 2, subj.tone_v, subj.response_v)]) ;
-
-	ML = count(x -> x == true, map((y,z) -> y == 5 && z == 8, subj.tone_v, subj.response_v)) /
-		 count(x -> x == true, map((y,z) -> y == 5 && z != 0, subj.tone_v, subj.response_v)) ;
-	ML_RT = mean(subj.rt_v[map((y,z) -> y == 5 && z == 8, subj.tone_v, subj.response_v)]) ;
-
-	LH = count(x -> x == true, map((y,z) -> y == 8 && z == 2, subj.tone_v, subj.response_v)) /
-		 count(x -> x == true, map((y,z) -> y == 8 && z != 0, subj.tone_v, subj.response_v)) ;
-	LH_RT = mean(subj.rt_v[map((y,z) -> y == 8 && z == 2, subj.tone_v, subj.response_v)]) ;
-
-	LL = count(x -> x == true, map((y,z) -> y == 8 && z == 8, subj.tone_v, subj.response_v)) /
-		 count(x -> x == true, map((y,z) -> y == 8 && z != 0, subj.tone_v, subj.response_v)) ;
-	LL_RT = mean(subj.rt_v[map((y,z) -> y == 8 && z == 8, subj.tone_v, subj.response_v)]) ;
-
-	Om_H = count(x -> x == true, map((y,z) -> y == 2 && z == 0, subj.tone_v, subj.response_v)) /
-		 count(x -> x == true, map(y -> y == 2, subj.tone_v)) ;
-	Om_M = count(x -> x == true, map((y,z) -> y == 5 && z == 0, subj.tone_v, subj.response_v)) /
-		 count(x -> x == true, map(y -> y == 5, subj.tone_v)) ;
-	Om_L = count(x -> x == true, map((y,z) -> y == 8 && z == 0, subj.tone_v, subj.response_v)) /
-		 count(x -> x == true, map(y -> y == 8, subj.tone_v)) ;
-
-	Prem = count(x -> x == true, map((y,z) -> y == 0 && z != 0, subj.tone_v, subj.response_v)) /
-		 length(subj.tone_v) ;
-
-	switch_d = get_switch_after_incorr([subj]) ;
-	switch_after_incorr = switch_d[subj.id][1] ;
-
-	same_d = get_same_after_corr([subj]) ;
-	same_after_corr = same_d[subj.id][1] ;
-
-	return [HH, HH_RT, MH, MH_RT, ML_RT, LL, LL_RT, 
-			Om_H, Om_M, Om_L, switch_after_incorr, same_after_corr]
-
-end
-
-function get_dimensionality_reduction_d(subj_v::Array{subj_t, 1})
-
-	considered_subj_v = Array{String, 1}() ;
-	dr_d = Dict{String, Array{Float64}}() ;
-	n_dr_dims = 0 ;
-
-	for subj in subj_v
-		if count(x -> x == subj.id, considered_subj_v) == 1
-			dr_v = get_dimensionality_reduction_subj(subj) ;
-
-			if !any(isnan.(dr_v))
-				append!(dr_d[subj.id], dr_v) ;
-				n_dr_dims = length(dr_d[subj.id]) ;
-			end
-
-			push!(considered_subj_v, subj.id) ;
-
-		elseif count(x -> x == subj.id, considered_subj_v) == 0 && !(subj.id in exclude_v)
-			dr_v = get_dimensionality_reduction_subj(subj) ;
-			
-			if !any(isnan.(dr_v))
-				dr_d[subj.id] = dr_v ;
-				push!(considered_subj_v, subj.id) ;
-			end
-		end
-	end
-
-	for k in keys(dr_d)
-		if length(dr_d[k]) != n_dr_dims
-			delete!(dr_d, k) ;
-		end
-	end
-
-	return dr_d
 end
 
 function get_switch_after_incorr(subj_v::Array{subj_t,1})

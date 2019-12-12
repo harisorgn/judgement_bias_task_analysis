@@ -33,11 +33,12 @@ function read_csv_var_cols(file_path::String)
 	return DataFrame(;OrderedDict(Symbol(headers[i])=>data[i] for i=1:ncols)...)
 end
 
-function write_xlsx(row_write_v::Array{Array{Any,1},1}, session::Symbol, in_file::String, in_path::String)
+function write_xlsx(row_write_v, session::Symbol, in_file::String, in_path::String)
 
 	xlsx_file = string(in_path, in_file[1:11],".xlsx") ;
 
-	if session == :probe || session == :probe_1v1 || session == :probe_var_p_1v1
+	if session == :probe || session == :probe_1v1 || 
+		session == :probe_var_p_1v1 || session == :probabilistic
 		header_v = probe_header_v ;
 	elseif session == :probe_mult_p 
 		header_v = probe_mult_p_header_v ;

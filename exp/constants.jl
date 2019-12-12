@@ -27,7 +27,8 @@ const probe_mult_p_1v1_header_v = ["Batch_ID", "HH_RT", "LL_RT", "HL_RT", "LH_RT
 
 exclude_v = ["CH1_1", "CH1_4", "CH1_6", "CH1_9", "CH1_15", "CH5_10"] ;
 
+const n_max_trials = 100 ;
 const acc_criterion = 0.0 ;
-const rt_criterion = 0.25 ;
+const rt_criterion = -1.0 ;
 const rt_max = 20.0 ;
 const rt_max_new = 8.0 ;
