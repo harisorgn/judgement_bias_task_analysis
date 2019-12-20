@@ -15,7 +15,6 @@ function run(μ_0, σ_0, σ_μ,
 	σ_m_c = 1.0 ;
 
 	γ = 0.001 ;
-	r_θ = -0.5 ;
 
 	r_m = 0.0 ;
 	σ_r = 1.0 ;
@@ -53,8 +52,9 @@ function run(μ_0, σ_0, σ_μ,
 		(μ_predict, σ_predict, μ_c_predict, σ_c_predict) = dynamics_predict(μ, σ, μ_ss, γ, σ_μ,
 																			μ_c, σ_c, μ_c_ss, σ_μ_c) ;
 
-		d_r_predict = Normal(μ_predict, σ_predict) ;
-		p_act = 1.0 - cdf(d_r_predict, μ_c_predict) ;
+		d_predict = Normal(μ_predict - μ_c_predict, 
+							sqrt(σ_predict^2.0 + σ_c_predict^2.0)) ;
+		p_act = 1.0 - cdf(d_predict, 0.0) ;
 
 		if p_act >= rand(rng, Float64)
 			K = σ_predict^2.0 / (σ_predict^2.0 + σ_m^2.0) ;
@@ -85,8 +85,8 @@ function run(μ_0, σ_0, σ_μ,
 	errorbar(1:length(μ_v), μ_v, yerr = σ_v, fmt = "none", alpha = 0.5)
 	plot(1:length(μ_v), μ_v, "-k")
 
-	errorbar(1:length(μ_c_v), μ_c_v, yerr = σ_c_v, fmt = "none", alpha = 0.5, color = "red")
-	plot(1:length(μ_c_v), μ_c_v, "-k")
+	#errorbar(1:length(μ_c_v), μ_c_v, yerr = σ_c_v, fmt = "none", alpha = 0.5, color = "red")
+	#plot(1:length(μ_c_v), μ_c_v, "-k")
 
 	ax.tick_params(labelsize = 20)
 	#ylabel("Mood", fontsize = 20)
@@ -96,6 +96,6 @@ function run(μ_0, σ_0, σ_μ,
 end
 
 run(-2.0, 1.0, 0.5,
-	5.0, 1.0, 0.5)
+	0.0, 1.0, 0.5)
 
 
