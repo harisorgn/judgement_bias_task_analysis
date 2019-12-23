@@ -58,8 +58,8 @@ function plot_block_data(session_subj_v::Array{Array{subj_t,1},1}, n_blocks::Int
 
 	for subj_v in session_subj_v
 		session_hh_m = get_block_data(subj_v, n_blocks, 2, 2) ;
-		session_mh_m = get_block_data(subj_v, n_blocks, 5, 2) ;
-		session_ml_m = get_block_data(subj_v, n_blocks, 5, 8) ;
+		session_mh_m = get_block_data(subj_v, n_blocks, -1, 2) ;
+		session_ml_m = get_block_data(subj_v, n_blocks, -1, 8) ;
 		session_ll_m = get_block_data(subj_v, n_blocks, 8, 8) ;
 
 		plot(x_ticks .+ (session - 1)*n_blocks, nanmean(session_mh_m, 1)[:], "-r")
@@ -94,7 +94,7 @@ function plot_block_data(session_subj_v::Array{Array{subj_t,1},1}, n_blocks::Int
 	legend(fontsize = 18, frameon = false)
 	ylabel("Percentage responses", fontsize = 18)
 
-	ax.set_ylim([20.0, 80.0])
+	#ax.set_ylim([20.0, 80.0])
 
 	ax[:set_xticks](1 : length(session_subj_v) * n_blocks)
 	ax[:set_xticklabels](x_tick_labels)

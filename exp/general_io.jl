@@ -38,7 +38,8 @@ function write_xlsx(row_write_v, session::Symbol, in_file::String, in_path::Stri
 	xlsx_file = string(in_path, in_file[1:11],".xlsx") ;
 
 	if session == :probe || session == :probe_1v1 || 
-		session == :probe_var_p_1v1 || session == :probabilistic
+		session == :probe_var_p_1v1 || session == :probabilistic ||
+		session == :probe_1v1_light_tone
 		header_v = probe_header_v ;
 	elseif session == :probe_mult_p 
 		header_v = probe_mult_p_header_v ;
