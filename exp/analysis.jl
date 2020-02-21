@@ -10,7 +10,7 @@ end
 function get_session_subj(subj_v::Array{subj_t,1}, min_completed_trials::Int64)
 
 	n_sessions = count(x -> x.id == subj_v[1].id, subj_v) ;
-
+	
 	error_flag = false ;
 	for subj in subj_v
 		if count(x -> x.id == subj.id, subj_v) != n_sessions
@@ -54,31 +54,38 @@ end
 function get_block_data(subj_v::Array{subj_t,1}, n_blocks::Int64, 
 					tone_playing::Int64, response_made::Int64)
 
-	block_sz = Int64(n_max_trials / n_blocks) ;
 	resp_m = Matrix{Float64}(undef, length(subj_v), n_blocks) ;
 	rt_m = Matrix{Float64}(undef, length(subj_v), n_blocks) ;
 
 	s = 1 ;
 	for subj in subj_v
-
+		
 		mask_prem = map((x,y) -> x == 0 && y != 0, subj.tone_v, subj.response_v) ;
 		tone_v = subj.tone_v[.!mask_prem] ;
 		response_v = subj.response_v[.!mask_prem] ;
 		rt_v = subj.rt_v[.!mask_prem] ;
 
+		block_sz = Int64(ceil(length(tone_v) / n_blocks)) ;
+	
 		for i = 1 : n_blocks
 			mask_tone_resp = map((x,y,z) -> x == tone_playing && y == response_made && z <= i*block_sz && z > (i-1)*block_sz, 
 				tone_v, response_v, 1:length(tone_v)) ;
-			mask_tone = map((x,z) -> x == tone_playing && z <= i*block_sz && z > (i-1)*block_sz, 
-				tone_v, 1:length(tone_v)) ;
 
-			resp_m[s,i] = 100.0*count(x -> x == true, mask_tone_resp) / count(x -> x == true, mask_tone) ;
-			rt_m[s,i] = mean(rt_v[mask_tone_resp]) ;
+			if tone_playing != 0
+				mask_tone = map((x,z) -> x == tone_playing && z <= i*block_sz && z > (i-1)*block_sz, 
+					tone_v, 1:length(tone_v)) ;
+
+				resp_m[s,i] = 100.0*count(x -> x == true, mask_tone_resp) / count(x -> x == true, mask_tone) ;
+				rt_m[s,i] = mean(rt_v[mask_tone_resp]) ;
+			else
+				resp_m[s,i] = 100.0*count(x -> x == true, mask_tone_resp) / (ceil(length(subj.tone_v))/n_blocks) ;
+			end
+
 		end
 		s += 1 ;
 	end
-	#return (resp_m, rt_m)
-	return resp_m
+	return (resp_m, rt_m)
+	#return resp_m
 end
 
 function get_switch_after_incorr(subj_v::Array{subj_t,1})

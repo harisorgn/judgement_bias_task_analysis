@@ -6,99 +6,187 @@ nanmean(x,y) = mapslices(nanmean,x;dims = y)
 nanstd(x) = std(filter(!isnan,x))
 nanstd(x,y) = mapslices(nanstd,x;dims = y)
 
-function plot_block_acc(session_subj_v::Array{Array{subj_t,1},1})
+function plot_block_data(session_subj_v::Array{Array{subj_t,1},1}, n_blocks::Int64,
+						session_labels::Array{String,1}, session_type::Symbol)
+	
+	x_ticks = 1 : n_blocks ;
 
-	acc_m = Matrix{Float64}(undef, length(session_subj_v), length(session_subj_v[1])) ;
-
-	s = 1 ;
-	for subj_v in session_subj_v
-
-		c = 1 ;
-		for subj in subj_v
-			mask_corr = map(x -> x != 0, subj.reward_v) ;
-			mask_om = map((x,y) -> x == 0 && y != 0, subj.response_v, subj.tone_v) ;
-			mask_prem = map(x -> x == 0, subj.tone_v) ;
-
-			acc_m[s, c] = 100.0 * count(x -> x == true, mask_om) / length(subj.response_v[.!mask_prem]) ;
-			c += 1 ;
-		end
-
-		s += 1 ;
+	if n_blocks > 1
+		x_tick_labels = ["Block $(i)" for j = 1 : length(session_subj_v) for i = 1 : n_blocks] ;
+	elseif n_blocks == 1
+		x_tick_labels = ["" for j = 1 : length(session_subj_v) for i = 1 : n_blocks] ;
+	else
+		println("Block number needs to be >= 1")
 	end
 
-	x_ticks = 1 : length(session_subj_v) ;
-
-	figure()
-	ax = gca()
-
-	errorbar(x_ticks, nanmean(acc_m, 2)[:], yerr = nanstd(acc_m, 2)[:]./size(acc_m, 2))
-
-	ax[:set_xticks](1 : length(session_subj_v))
-	ax[:tick_params](labelsize = 20)
-	xlabel("Session", fontsize = 20)
-	ylabel("Omissions [%]", fontsize = 20)
-
-	show()
-end
-
-function plot_block_data(session_subj_v::Array{Array{subj_t,1},1}, n_blocks::Int64,
-						session_labels::Array{String,1})
-	
-	block_sz = Int64(n_max_trials / n_blocks) ;
-
-	figure()
-	ax = gca()
-
-	x_ticks = 1 : n_blocks ;
-	x_tick_labels = ["Block $(i)" for j = 1 : length(session_subj_v) for i = 1 : n_blocks] ;
 	x_tick_labels[Int64(ceil(n_blocks/2)) : n_blocks : end] .*= ["\n \n $(session_labels[i])"
 																for i = 1 : length(session_subj_v)] ;
 
 	session = 1 ;
 
+	fig1 = figure()
+	ylabel("Accuracy [%]", fontsize = 20)
+	ax1 = gca()
+
+	fig2 = figure()
+	ylabel("Response time [s]", fontsize = 20)
+	ax2 = gca()
+
 	for subj_v in session_subj_v
-		session_hh_m = get_block_data(subj_v, n_blocks, 2, 2) ;
-		session_mh_m = get_block_data(subj_v, n_blocks, -1, 2) ;
-		session_ml_m = get_block_data(subj_v, n_blocks, -1, 8) ;
-		session_ll_m = get_block_data(subj_v, n_blocks, 8, 8) ;
-
-		plot(x_ticks .+ (session - 1)*n_blocks, nanmean(session_mh_m, 1)[:], "-r")
-		plot(x_ticks .+ (session - 1)*n_blocks, nanmean(session_ml_m, 1)[:], "-b")
-
-		if session == 1
-			errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(session_mh_m, 1)[:], 
-				yerr = nanstd(session_mh_m, 1)[:]./size(session_mh_m, 1), 
-				marker = "D", markersize = 10, capsize = 10, color = "red", label = "High reward responses", 
-				linestyle = "")
-
-			errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(session_ml_m, 1)[:], 
-				yerr = nanstd(session_ml_m, 1)[:]./size(session_ml_m, 1), 
-				marker = "D", markersize = 10, capsize = 10, color = "blue", label = "Low reward responses", 
-				linestyle = "")
-		else
-			errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(session_mh_m, 1)[:], 
-				yerr = nanstd(session_mh_m, 1)[:]./size(session_mh_m, 1), 
-				marker = "D", markersize = 10, capsize = 10, color = "red", label = "", 
-				linestyle = "")
-
-			errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(session_ml_m, 1)[:], 
-				yerr = nanstd(session_ml_m, 1)[:]./size(session_ml_m, 1), 
-				marker = "D", markersize = 10, capsize = 10, color = "blue", label = "", 
-				linestyle = "")
-		end
 		
 
+		(hh_m, hh_rt_m) = get_block_data(subj_v, n_blocks, 2, 2) ;
+		(ll_m, ll_rt_m) = get_block_data(subj_v, n_blocks, 8, 8) ;
+		(hl_m, hl_rt_m) = get_block_data(subj_v, n_blocks, 2, 8) ;
+		(lh_m, lh_rt_m) = get_block_data(subj_v, n_blocks, 8, 2) ;
+
+		if session_type == :probe
+
+			(mh_m, mh_rt_m) = get_block_data(subj_v, n_blocks, -1, 2) ;
+			(ml_m, ml_rt_m) = get_block_data(subj_v, n_blocks, -1, 8) ;
+
+			ax1.plot(x_ticks .+ (session - 1)*n_blocks, nanmean(mh_m, 1)[:], "-r")
+			ax1.plot(x_ticks .+ (session - 1)*n_blocks, nanmean(ml_m, 1)[:], "-b")
+
+			if session == 1
+				ax1.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(mh_m, 1)[:], 
+					yerr = nanstd(mh_m, 1)[:]./size(mh_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "red", label = "2 KHz responses", 
+					linestyle = "")
+
+				ax1.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(ml_m, 1)[:], 
+					yerr = nanstd(ml_m, 1)[:]./size(ml_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "blue", label = "8 KHz responses", 
+					linestyle = "")
+			else
+				ax1.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(mh_m, 1)[:], 
+					yerr = nanstd(mh_m, 1)[:]./size(mh_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "red", label = "", 
+					linestyle = "")
+
+				ax1.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(ml_m, 1)[:], 
+					yerr = nanstd(ml_m, 1)[:]./size(ml_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "blue", label = "", 
+					linestyle = "")
+			end
+
+			ax2.plot(x_ticks .+ (session - 1)*n_blocks, nanmean(mh_rt_m, 1)[:], "-r")
+			ax2.plot(x_ticks .+ (session - 1)*n_blocks, nanmean(ml_rt_m, 1)[:], "-b")
+
+			if session == 1
+				ax2.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(mh_rt_m, 1)[:], 
+					yerr = nanstd(mh_rt_m, 1)[:]./size(mh_rt_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "red", label = "2 KHz responses", 
+					linestyle = "")
+
+				ax2.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(ml_rt_m, 1)[:], 
+					yerr = nanstd(ml_rt_m, 1)[:]./size(ml_rt_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "blue", label = "8 KHz responses", 
+					linestyle = "")
+			else
+				ax2.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(mh_rt_m, 1)[:], 
+					yerr = nanstd(mh_rt_m, 1)[:]./size(mh_rt_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "red", label = "", 
+					linestyle = "")
+
+				ax2.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(ml_rt_m, 1)[:], 
+					yerr = nanstd(ml_rt_m, 1)[:]./size(ml_rt_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "blue", label = "", 
+					linestyle = "")
+			end
+
+		elseif session_type == :train
+
+			ax1.plot(x_ticks .+ (session - 1)*n_blocks, nanmean(hh_m, 1)[:], "-r")
+			ax1.plot(x_ticks .+ (session - 1)*n_blocks, nanmean(ll_m, 1)[:], "-b")
+
+			if session == 1
+				ax1.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(hh_m, 1)[:], 
+					yerr = nanstd(hh_m, 1)[:]./size(hh_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "red", label = "2 KHz responses", 
+					linestyle = "")
+
+				ax1.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(ll_m, 1)[:], 
+					yerr = nanstd(ll_m, 1)[:]./size(ll_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "blue", label = "8 KHz responses", 
+					linestyle = "")
+			else
+				ax1.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(hh_m, 1)[:], 
+					yerr = nanstd(hh_m, 1)[:]./size(hh_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "red", label = "", 
+					linestyle = "")
+
+				ax1.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(ll_m, 1)[:], 
+					yerr = nanstd(ll_m, 1)[:]./size(ll_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "blue", label = "", 
+					linestyle = "")
+			end
+			
+			ax2.plot(x_ticks .+ (session - 1)*n_blocks, nanmean(hh_rt_m, 1)[:], "-r")
+			ax2.plot(x_ticks .+ (session - 1)*n_blocks, nanmean(ll_rt_m, 1)[:], "-b")
+
+			if session == 1
+				ax2.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(hh_rt_m, 1)[:], 
+					yerr = nanstd(hh_rt_m, 1)[:]./size(hh_rt_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "red", label = "2 KHz correct responses", 
+					linestyle = "")
+
+				ax2.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(ll_rt_m, 1)[:], 
+					yerr = nanstd(ll_rt_m, 1)[:]./size(ll_rt_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "blue", label = "8 KHz correct responses", 
+					linestyle = "")
+				#=
+				ax2.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(hl_rt_m, 1)[:], 
+					yerr = nanstd(hl_rt_m, 1)[:]./size(hl_rt_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "orange", label = "2 KHz incorrect responses", 
+					linestyle = "")
+
+				ax2.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(lh_rt_m, 1)[:], 
+					yerr = nanstd(lh_rt_m, 1)[:]./size(lh_rt_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "cyan", label = "8 KHz incorrect responses", 
+					linestyle = "")
+				=#
+			else
+				ax2.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(hh_rt_m, 1)[:], 
+					yerr = nanstd(hh_rt_m, 1)[:]./size(hh_rt_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "red", label = "", 
+					linestyle = "")
+
+				ax2.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(ll_rt_m, 1)[:], 
+					yerr = nanstd(ll_rt_m, 1)[:]./size(ll_rt_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "blue", label = "", 
+					linestyle = "")
+				#=
+				ax2.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(hl_rt_m, 1)[:], 
+					yerr = nanstd(hl_rt_m, 1)[:]./size(hl_rt_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "orange", label = "", 
+					linestyle = "")
+
+				ax2.errorbar(x_ticks .+ (session - 1)*n_blocks, nanmean(lh_rt_m, 1)[:], 
+					yerr = nanstd(lh_rt_m, 1)[:]./size(lh_rt_m, 1), 
+					marker = "D", markersize = 10, capsize = 10, color = "cyan", label = "", 
+					linestyle = "")
+				=#
+			end
+
+		else
+			println("Invalid session type")
+		end
+		
 		session += 1 ;
 	end
 
-	legend(fontsize = 18, frameon = false)
-	ylabel("Percentage responses", fontsize = 18)
+	ax1.legend(fontsize = 20, frameon = false)
 
-	#ax.set_ylim([20.0, 80.0])
+	ax1.set_xticks(1 : length(session_subj_v) * n_blocks)
+	ax1.set_xticklabels(x_tick_labels)
+	ax1.tick_params(labelsize = 20)
 
-	ax[:set_xticks](1 : length(session_subj_v) * n_blocks)
-	ax[:set_xticklabels](x_tick_labels)
-	ax[:tick_params](labelsize = 18)
+	ax2.legend(fontsize = 20, frameon = false)
+
+	ax2.set_xticks(1 : length(session_subj_v) * n_blocks)
+	ax2.set_xticklabels(x_tick_labels)
+	ax2.tick_params(labelsize = 20)
 
 	show()
 

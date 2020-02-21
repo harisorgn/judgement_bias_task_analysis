@@ -134,7 +134,7 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 					end
 					
 					subj_t , subj_write_v = get_probe_subj(subj_m, subj_id, 2) ;
-
+					
 					if subj_write_v[8] >= acc_criterion && subj_write_v[9] >= acc_criterion
 						push!(subj_t_v, subj_t) ;
 						push!(write_v, subj_write_v) ;
@@ -230,6 +230,7 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 				end
 			end
 		end
+		
 		if !isempty(write_v) && write_flag
 			write_xlsx(write_v, session, file_name, path) ;
 		end
@@ -479,10 +480,10 @@ function get_probe_subj(subj_m::Array{Int64,2}, subj_id::String, col_offset::Int
 		reward[mask_corr_cue2 .| mask_corr_p2] .= 4 ;
 		tone[mask_corr_cue1 .| mask_incorr_cue1 .| mask_om_cue1] .= 8 ;
 		tone[mask_corr_cue2 .| mask_incorr_cue2 .| mask_om_cue2] .= 2 ;
-		rt[map(x -> x == 2, tone)] = (subj_m[map(x -> x == 2, tone), 16] - 
-									subj_m[map(x -> x == 2, tone), 15]) / 100.0 ;
-		rt[map(x -> x == 8, tone)] = (subj_m[map(x -> x == 8, tone), 14] - 
-									subj_m[map(x -> x == 8, tone), 13]) / 100.0 ;
+		rt[map(x -> x == 2, tone)] = (subj_m[map(x -> x == 2, tone), 16 + col_offset] - 
+									subj_m[map(x -> x == 2, tone), 15 + col_offset]) / 100.0 ;
+		rt[map(x -> x == 8, tone)] = (subj_m[map(x -> x == 8, tone), 14 + col_offset] - 
+									subj_m[map(x -> x == 8, tone), 13 + col_offset]) / 100.0 ;
 
 		response[map((x,y) -> x == true && y != 0, mask_prem, subj_m[:, 11 + col_offset])] .= 8 ;
 		response[map((x,y) -> x == true && y != 0, mask_prem, subj_m[:, 12 + col_offset])] .= 2 ;
@@ -523,9 +524,7 @@ function get_probe_subj(subj_m::Array{Int64,2}, subj_id::String, col_offset::Int
 							100.0*count(x->x==true, mask_om_cue2)/count(x->x==2, tone), 
 							100.0*count(x->x==true, mask_om_cue1)/count(x->x==8, tone), 
 							100.0*count(x -> x == true, mask_om_p1 .| mask_om_p2)/count(x->x==5,tone), 
-							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1), 
-							mean([rt[mask_corr_p1 .| mask_incorr_p1] ; 
-								rt[mask_corr_p2 .| mask_incorr_p2]])] ;
+							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1)] ;
 
 	else
 		response[mask_corr_cue1 .| mask_corr_p1 .| mask_incorr_cue2 .| mask_incorr_p2] .= 2 ;
@@ -534,10 +533,10 @@ function get_probe_subj(subj_m::Array{Int64,2}, subj_id::String, col_offset::Int
 		reward[mask_corr_cue2 .| mask_corr_p2] .= 1 ;
 		tone[mask_corr_cue1 .| mask_incorr_cue1 .| mask_om_cue1] .= 2 ;
 		tone[mask_corr_cue2 .| mask_incorr_cue2 .| mask_om_cue2] .= 8 ;
-		rt[map(x -> x == 2, tone)] = (subj_m[map(x -> x == 2, tone), 14] - 
-									subj_m[map(x -> x == 2, tone), 13]) / 100.0 ;
-		rt[map(x -> x == 8, tone)] = (subj_m[map(x -> x == 8, tone), 16] - 
-									subj_m[map(x -> x == 8, tone), 15]) / 100.0 ;
+		rt[map(x -> x == 2, tone)] = (subj_m[map(x -> x == 2, tone), 14 + col_offset] - 
+									subj_m[map(x -> x == 2, tone), 13 + col_offset]) / 100.0 ;
+		rt[map(x -> x == 8, tone)] = (subj_m[map(x -> x == 8, tone), 16 + col_offset] - 
+									subj_m[map(x -> x == 8, tone), 15 + col_offset]) / 100.0 ;
 		
 		response[map((x,y) -> x == true && y != 0, mask_prem, subj_m[:, 11 + col_offset])] .= 2 ;
 		response[map((x,y) -> x == true && y != 0, mask_prem, subj_m[:, 12 + col_offset])] .= 8 ;
@@ -578,9 +577,7 @@ function get_probe_subj(subj_m::Array{Int64,2}, subj_id::String, col_offset::Int
 							100.0*count(x->x==true, mask_om_cue1)/count(x->x==2, tone), 
 							100.0*count(x->x==true, mask_om_cue2)/count(x->x==8, tone), 
 							100.0*count(x -> x == true, mask_om_p1 .| mask_om_p2)/count(x->x==5,tone), 
-							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1), 
-							mean([rt[mask_corr_p1 .| mask_incorr_p1] ; 
-								rt[mask_corr_p2 .| mask_incorr_p2]])] ;
+							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1)] ;
 	end
 
 	rt[mask_om_cue1 .| mask_om_cue2 .| mask_om_p1 .| mask_om_p2] .= rt_max ;
@@ -1517,8 +1514,7 @@ function get_probe_probabilistic_subj(subj_m::Array{Int64,2}, subj_id::String)
 							100.0*count(x->x==true, mask_om_cue2)/count(x->x==2, tone), 
 							100.0*count(x->x==true, mask_om_cue1)/count(x->x==8, tone), 
 							100.0*count(x -> x == true, mask_om_p1 .| mask_om_p2)/count(x->x==5,tone), 
-							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1), 
-							mean([rt[mask_response_p1 .| mask_response_p2]])] ;
+							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1)] ;
 
 	else
 		response[mask_corr_cue1 .| mask_incorr_cue2 .| mask_response_p1] .= 2 ;
@@ -1569,8 +1565,7 @@ function get_probe_probabilistic_subj(subj_m::Array{Int64,2}, subj_id::String)
 							100.0*count(x->x==true, mask_om_cue1)/count(x->x==2, tone), 
 							100.0*count(x->x==true, mask_om_cue2)/count(x->x==8, tone), 
 							100.0*count(x -> x == true, mask_om_p1 .| mask_om_p2)/count(x->x==5,tone), 
-							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1), 
-							mean([rt[mask_response_p1 .| mask_response_p2]])] ;
+							100.0*count(x->x==true, mask_prem)/(subj_m[end,1]+1)] ;
 	end
 
 	rt[mask_om_cue1 .| mask_om_cue2 .| mask_om_p1 .| mask_om_p2] .= rt_max ;
@@ -2111,7 +2106,13 @@ function get_train_light_tone_subj(subj_m::Array{Int64,2}, subj_id::String, sess
 	write_v[1] = id_number ;
 	write_v[2] = string(session) ;
 
-	if mod(id_number, 2) == 0 
+	#___________________________________________________________________
+	#___________________________________________________________________
+	#____Reversed lever - reward contingencies than traditional JBT_____
+	#___________________________________________________________________
+	#___________________________________________________________________
+
+	if mod(id_number, 2) != 0 # traditionally mod(id_number, 2) == 0
 		response[mask_corr_cue1 .| mask_incorr_cue2] .= 8 ; 
 		response[mask_corr_cue2 .| mask_incorr_cue1] .= 2 ; 
 
@@ -2240,9 +2241,18 @@ function get_probe_1v1_light_tone_subj(subj_m::Array{Int64,2}, subj_id::String)
 	write_v = Array{Any,1}(undef, length(probe_header_v)) ;
 	write_v[1] = id_number ;
 
-	if mod(id_number, 2) == 0 
+	#___________________________________________________________________
+	#___________________________________________________________________
+	#____Reversed lever - reward contingencies than traditional JBT_____
+	#___________________________________________________________________
+	#___________________________________________________________________
+
+	if mod(id_number, 2) != 0 # traditionally mod(id_number, 2) == 0
 		response[mask_corr_cue1 .| mask_incorr_cue2 .| mask_response_p1] .= 8 ; 
 		response[mask_corr_cue2 .| mask_incorr_cue1 .| mask_response_p2] .= 2 ; 
+
+		response[map(x -> x != 0, subj_m[:, 13])] .= 8 ;
+		response[map(x -> x != 0, subj_m[:, 14])] .= 2 ;
 
 		tone[mask_corr_cue1 .| mask_incorr_cue1 .| mask_om_cue1] .= 8 ; 
 		tone[mask_corr_cue2 .| mask_incorr_cue2 .| mask_om_cue2] .= 2 ;
@@ -2293,6 +2303,9 @@ function get_probe_1v1_light_tone_subj(subj_m::Array{Int64,2}, subj_id::String)
 	else
 		response[mask_corr_cue1 .| mask_incorr_cue2 .| mask_response_p1] .= 2 ; 
 		response[mask_corr_cue2 .| mask_incorr_cue1 .| mask_response_p2] .= 8 ; 
+
+		response[map(x -> x != 0, subj_m[:, 13])] .= 2 ;
+		response[map(x -> x != 0, subj_m[:, 14])] .= 8 ;
 
 		tone[mask_corr_cue1 .| mask_incorr_cue1 .| mask_om_cue1] .= 2 ;
 		tone[mask_corr_cue2 .| mask_incorr_cue2 .| mask_om_cue2] .= 8 ;
