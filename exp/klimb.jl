@@ -58,6 +58,9 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 				elseif occursin("Discrimination", df[row_idx, 3]) && occursin("training", df[row_idx, 3]) 
 					session = :t1v1 ;
 					dt_row_len = 18 ;
+				elseif occursin("Visual", df[row_idx, 3])
+					session = :mouse_touchscreen_discr ;
+					dt_row_len = 59 ;
 				elseif occursin("Discrimination", df[row_idx, 3])
 					session = :t1v1_light_tone ;
 					dt_row_len = 42 ;
@@ -227,6 +230,19 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 					
 					push!(subj_t_v, subj_t) ;
 					push!(write_v, subj_write_v) ;
+				elseif session == :mouse_touchscreen_discr
+					mask_left_resp = map((x,y) -> x == 0 && y != 0, subj_m[:,2], subj_m[:,23]) ;
+					mask_right_resp = map((x,y) -> x == 0 && y != 0, subj_m[:,2], subj_m[:,25]) ;
+					mask_resp = map(x -> x == 0, subj_m[:,2]) ;
+
+					if first_time
+						println(file_name)
+						first_time = false ;
+					end
+
+					println(subj_id," :  ", length(subj_m[mask_left_resp, 1]), "  ", length(subj_m[mask_right_resp, 1]), 
+									  "  ",	(length(subj_m[mask_left_resp, 1]) - length(subj_m[mask_right_resp, 1]))/
+										  	(length(subj_m[mask_left_resp, 1]) + length(subj_m[mask_right_resp, 1])))
 				end
 			end
 		end
