@@ -12,7 +12,8 @@ function klimb_read(path::String, session_to_analyse::Symbol, write_flag::Bool)
 	if isempty(path)
 		file_v = date_sort(filter(x->occursin(".csv", x), readdir())) ;
 	else
-		file_v = date_sort(filter(x->occursin(".csv", x), readdir(path))) ;
+		#file_v = date_sort(filter(x->occursin(".csv", x), readdir(path))) ;
+		file_v = filter(x->occursin(".csv", x), readdir(path)) ;
 	end
 
 	subj_t_v = Array{subj_t,1}() ;

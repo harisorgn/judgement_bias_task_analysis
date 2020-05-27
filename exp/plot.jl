@@ -42,8 +42,8 @@ function plot_block_data(session_subj_v::Array{Array{subj_t,1},1}, n_blocks::Int
 
 		if session_type == :probe
 
-			(mh_m, mh_rt_m) = get_block_data(subj_v, n_blocks, -1, 2) ;
-			(ml_m, ml_rt_m) = get_block_data(subj_v, n_blocks, -1, 8) ;
+			(mh_m, mh_rt_m) = get_block_data(subj_v, n_blocks, 5, 2) ;
+			(ml_m, ml_rt_m) = get_block_data(subj_v, n_blocks, 5, 8) ;
 
 			ax1.plot(x_ticks .+ (session - 1)*n_blocks, nanmean(mh_m, 1)[:], "-r")
 			ax1.plot(x_ticks .+ (session - 1)*n_blocks, nanmean(ml_m, 1)[:], "-b")

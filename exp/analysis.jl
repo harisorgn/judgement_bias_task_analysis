@@ -24,8 +24,6 @@ function get_session_subj(subj_v::Array{subj_t,1}, min_completed_trials::Int64)
 	end
 	
 	session_subj_v = [subj_t[] for i = 1 : n_sessions] ;
-	#s1_subj_v = Array{subj_t, 1}() ; # first session
-	#s2_subj_v = Array{subj_t, 1}() ; # second session
 
 	considered_subj_d = Dict{String, Int64}() ;
 
@@ -52,7 +50,7 @@ function get_session_subj(subj_v::Array{subj_t,1}, min_completed_trials::Int64)
 end
 
 function get_block_data(subj_v::Array{subj_t,1}, n_blocks::Int64, 
-					tone_playing::Int64, response_made::Int64)
+					tone_playing, response_made)
 
 	resp_m = Matrix{Float64}(undef, length(subj_v), n_blocks) ;
 	rt_m = Matrix{Float64}(undef, length(subj_v), n_blocks) ;
@@ -85,7 +83,6 @@ function get_block_data(subj_v::Array{subj_t,1}, n_blocks::Int64,
 		s += 1 ;
 	end
 	return (resp_m, rt_m)
-	#return resp_m
 end
 
 function get_switch_after_incorr(subj_v::Array{subj_t,1})
